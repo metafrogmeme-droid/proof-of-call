@@ -13,8 +13,10 @@ Status: work in progress for QIE Mainnet Hackathon 3.0. **Testnet only. Nothing 
 | `src/ProofOfCall.sol` | Seal / reveal / expire, on-chain round proofs, HIT / MISS / FLAT / VOID, per-publisher scorecards |
 | `src/interfaces/IAggregatorV3.sol` | Our own 5-function Chainlink-style feed interface (no external package) |
 | `src/mocks/MockAggregatorV3.sol` | Testnet feed: 8 decimals, scripted rounds (QIE testnet has no oracle contracts) |
-| `test/` | Unit, fuzz, invariant and bytecode tests |
+| `script/` | Testnet deploy (`deploy.sh`, `Deploy.s.sol`), read-only post-deploy check (`Check.s.sol`), shared guards |
+| `test/` | Unit, fuzz, invariant, bytecode and deploy-script tests |
 | `docs/DESIGN.md`, `docs/THREAT_MODEL.md` | How it works and what it defends against |
+| `docs/DEPLOY.md` | QIE testnet facts, EVM-level probe, how to deploy and check |
 
 ## Run
 
