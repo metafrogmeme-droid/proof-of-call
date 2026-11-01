@@ -1,0 +1,23 @@
+# Foundry
+out/
+cache/
+broadcast/
+coverage/
+lcov.info
+.gas-snapshot.tmp
+
+# Secrets and local state: never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+keystore/
+salts/
+*.salts.json
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+node_modules/
