@@ -51,7 +51,7 @@ if [ -f .env ]; then
 fi
 
 # 3. Required config.
-: "${QIE_RPC_URL:?set QIE_RPC_URL (e.g. https://rpc1testnet.qie.digital/)}"
+: "${QIE_RPC_URL:?set QIE_RPC_URL (e.g. https://rpc2testnet.qie.digital/)}"
 : "${POC_EXPECTED_CHAIN_ID:?set POC_EXPECTED_CHAIN_ID (1983 for QIE testnet)}"
 : "${POC_EXPECTED_DEPLOYER:?set POC_EXPECTED_DEPLOYER (the funded address that signs)}"
 : "${POC_OWNER:?set POC_OWNER}"
