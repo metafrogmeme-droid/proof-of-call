@@ -64,4 +64,4 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
   web app (Q7), external audit and static analysis (Q10).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
 - QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
-- Explorer verification (`docs/VERIFY.md`) and the mainnet runbook (Q11).
+- Explorer source verification (commands in `docs/DEPLOY.md`) and the mainnet runbook (Q11).

@@ -1,14 +1,89 @@
-# Deploying ProofOfCall (Q2: QIE testnet tooling)
+# Deploying ProofOfCall (QIE testnet)
 
-Status: tooling only. **Nothing is deployed.** A testnet deploy needs a funded deployer that the owner
-controls; mainnet (chain 1990) is the owner's own step in Q11 and is refused by default.
+Status: **live on QIE testnet (chain 1983) since 1 Nov 2026**, see [Live testnet deployment](#live-testnet-deployment-chain-1983)
+and `deployments/qie-testnet-1983.json`. Mainnet (chain 1990) is **not** deployed; it is the owner's own step in
+Q11 and is refused by default.
+
+## Live testnet deployment (chain 1983)
+
+Deployed 1 Nov 2026 18:59:56 CET (17:59:56 UTC) with `script/deploy.sh --broadcast` from commit `8b8e7eb`
+(solc 0.8.28, `evm_version = "paris"`, optimizer 200 runs). Machine-readable copy: `deployments/qie-testnet-1983.json`.
+
+| Contract | Address | Deploy tx | Block |
+|---|---|---|---|
+| `ProofOfCall` | [`0xb6567DB95934ec74fabe4823D0c07125bfc29C54`][poc] | [`0xaa83a9b3…2f1a574`][poc-tx] | 9507635 |
+| `MockAggregatorV3` "BTC / USD" | [`0xa1141220424Fc103d1631BAd44039CEc0C4B6D28`][btc] | [`0x7c0045e7…d2f86db`][btc-tx] | 9507633 |
+| `MockAggregatorV3` "ETH / USD" | [`0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82`][eth] | [`0xed2a4e06…666a42c`][eth-tx] | 9507634 |
+
+| Role / setting | Value |
+|---|---|
+| Owner | `0x020A4366595292aa16184536bAB2E9949d0D925F` (the owner's MetaMask), set in the constructor; `pendingOwner` = `0x0`, nothing to accept |
+| Deployer | `0x8D0C4933Bbac89B99d0a94De8810049D5f8F3689` (fresh testnet-only keystore; also the admin of both mocks) |
+| `defaultMaxGap` | `21600` s (6 h) |
+| `defaultFlatBandBps` | `10` (0.10 %) |
+| Feed allowlist | both mocks, `addedAt` = 1793555996, `retiredAt` = 0 |
+| Explorer | `https://testnet.qie.digital` (Blockscout v7.0.2, paths `/address/<addr>` and `/tx/<hash>`) |
+
+[poc]: https://testnet.qie.digital/address/0xb6567DB95934ec74fabe4823D0c07125bfc29C54
+[poc-tx]: https://testnet.qie.digital/tx/0xaa83a9b3a215f6a3ff86c6b7e0aea608c13e4ebc6fc17778f9c91d5832f1a574
+[btc]: https://testnet.qie.digital/address/0xa1141220424Fc103d1631BAd44039CEc0C4B6D28
+[btc-tx]: https://testnet.qie.digital/tx/0x7c0045e74785630a83c235c2920b475304542a12695bee4c23e254d08d2f86db
+[eth]: https://testnet.qie.digital/address/0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82
+[eth-tx]: https://testnet.qie.digital/tx/0xed2a4e06738051b94475aa0894e98d5549792ea10b8a58bfaa6f69371666a42c
+
+### On-chain check (1 Nov 2026, via rpc2, read-only)
+
+All values above were read back from chain 1983 over `https://rpc2testnet.qie.digital/`:
+
+- `eth_chainId` = 1983; all three deploy receipts have `status` = 1 and `from` = the deployer.
+- `ProofOfCall`: `owner()` = `0x020A…925F`, `pendingOwner()` = `0x0`, `defaultMaxGap()` = 21600,
+  `defaultFlatBandBps()` = 10, `feedState(feed)` = (1793555996, 0) and `isFeedAllowedAt(feed, now)` = true for both mocks.
+- Mocks: `decimals()` = 8, `description()` = "BTC / USD" / "ETH / USD", `admin()` = the deployer, `version()` = 1.
+- Code present: `ProofOfCall` 9777 bytes, each mock 2874 bytes. The `ProofOfCall` runtime code is byte-identical
+  to a local `forge build` of `8b8e7eb`; the mocks are identical once the `admin` immutable is filled in. The creation
+  input of each deploy tx equals the local creation code plus the ABI-encoded constructor arguments.
+- `script/Check.s.sol` passes (owner, both defaults, 2 feeds, 8 decimals, mock admin):
+
+```sh
+POC_EXPECTED_CHAIN_ID=1983 \
+POC_ADDRESS=0xb6567DB95934ec74fabe4823D0c07125bfc29C54 \
+POC_OWNER=0x020A4366595292aa16184536bAB2E9949d0D925F \
+POC_MAX_GAP=21600 POC_FLAT_BAND_BPS=10 \
+POC_CHECK_FEEDS=0xa1141220424Fc103d1631BAd44039CEc0C4B6D28,0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82 \
+POC_MOCK_ADMIN=0x8D0C4933Bbac89B99d0a94De8810049D5f8F3689 \
+forge script script/Check.s.sol:Check --rpc-url https://rpc2testnet.qie.digital/
+```
+
+The mock prices are empty (`latestRound()` = 0) until the mock admin pushes rounds; that is a separate step.
+
+### Explorer source verification (not done yet)
+
+On 1 Nov 2026 the three contracts are **not** source-verified on `testnet.qie.digital`
+(`/api/v2/smart-contracts/<addr>` returns no `is_verified`). Verifying publishes the full Solidity source on the
+public explorer, so it waits until the owner decides to make the source public (QIE's submission needs a public
+repo anyway). Blockscout needs no API key. Commands (from this repo at `8b8e7eb`, same `foundry.toml`):
+
+```sh
+V="--chain 1983 --verifier blockscout --verifier-url https://testnet.qie.digital/api/ --watch"
+forge verify-contract 0xb6567DB95934ec74fabe4823D0c07125bfc29C54 src/ProofOfCall.sol:ProofOfCall $V \
+  --constructor-args "$(cast abi-encode 'constructor(address,uint32,uint16,address[])' \
+    0x020A4366595292aa16184536bAB2E9949d0D925F 21600 10 \
+    '[0xa1141220424Fc103d1631BAd44039CEc0C4B6D28,0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82]')"
+forge verify-contract 0xa1141220424Fc103d1631BAd44039CEc0C4B6D28 src/mocks/MockAggregatorV3.sol:MockAggregatorV3 $V \
+  --constructor-args "$(cast abi-encode 'constructor(string)' 'BTC / USD')"
+forge verify-contract 0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82 src/mocks/MockAggregatorV3.sol:MockAggregatorV3 $V \
+  --constructor-args "$(cast abi-encode 'constructor(string)' 'ETH / USD')"
+```
+
+Add `--show-standard-json-input` to print the compiler input locally without submitting anything. Afterwards,
+check `https://testnet.qie.digital/api/v2/smart-contracts/<addr>` for `"is_verified": true`.
 
 ## QIE testnet facts (checked 1 Nov 2026)
 
 | | Value | Source |
 |---|---|---|
 | Chain id | `1983` (`0x7bf`) | [QIE docs: Access Mainnet or Testnet][s1], [QIE Wallet integration guide][s2]; `eth_chainId` on rpc2/rpc4/rpc5 returned `0x7bf` |
-| RPC | `https://rpc1testnet.qie.digital/` (docs' recommended) ... `rpc6testnet` | [s1]. On 1 Nov rpc1 and rpc3 did not answer from our box; rpc2, rpc4, rpc5 did. Use any that answers |
+| RPC | `https://rpc2testnet.qie.digital/` (our default); `rpc4testnet`, `rpc5testnet` also work | [s1] lists `rpc1testnet` ... `rpc6testnet`. **On 1 Nov `rpc1testnet` failed the TLS handshake** (`unexpected eof`) and rpc3 did not answer; rpc2, rpc4 and rpc5 returned `0x7bf`. Use rpc2, rpc4 or rpc5 |
 | Explorer | `https://testnet.qie.digital/` | [s1], [s2] |
 | Gas token | `QIE`, 18 decimals | [s2] |
 | Faucet | `https://www.qie.digital/faucet` | [s1], [s2] |
@@ -86,13 +161,12 @@ Prerequisites: Foundry 1.8.6 (`foundryup -i v1.8.6`), this repo with submodules.
 5. **Deploy:** `script/deploy.sh --broadcast`, type `1983` when asked, enter the keystore password.
 6. **Check:** put the printed addresses in `.env` (`POC_ADDRESS`, `POC_CHECK_FEEDS`, `POC_MOCK_ADMIN` = the
    deployer) and run `forge script script/Check.s.sol:Check --rpc-url "$QIE_RPC_URL"` (read-only, no key).
-7. Open the printed explorer link. Contract verification on testnet.qie.digital is a follow-up (`docs/VERIFY.md`).
+7. Open the printed explorer link. Source verification: see [Explorer source verification](#explorer-source-verification-not-done-yet).
 
 Outputs: `broadcast/` (tx receipts) and `cache/` (forge writes "sensitive values", e.g. the RPC URL) are
 gitignored. Do not share them blindly and never commit them.
 
-## Not in this PR
+## Not done yet
 
-- Any real deploy (testnet or mainnet).
-- Contract verification on the explorer (API still to be checked) and `docs/VERIFY.md`.
-- Mainnet runbook (Q11): the mainnet path exists only behind the guards above and is not used.
+- Explorer source verification (commands above; waits for the owner's decision to publish the source).
+- Mainnet deploy and runbook (Q11): the mainnet path exists only behind the guards above and is not used.
