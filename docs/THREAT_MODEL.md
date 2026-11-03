@@ -44,11 +44,24 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | T18 | **Value stuck or stolen** | No payable functions, no `receive`/`fallback`, no `CALL` opcode in the runtime | `test_rejectsPlainValue`, `test_seal_revert_withValue`, `test/Bytecode.t.sol`, invariant `holdsNoValue` |
 | T19 | **Timestamp manipulation** by block producers | A few seconds of drift can move a boundary by one round at most; horizons are at least 5 minutes and the round proof still uses real oracle rounds | n/a |
 | T20 | **Ownership takeover** via a mistyped address | Two-step transfer; only the pending owner can accept; zero cancels | `test_twoStepOwnership`, `test_transferOwnership_cancel` |
-| T21 | **Mock allowlisted on mainnet** (anyone could script prices) | Mock writes are deployer-only; Q4 deploy script must refuse mock feeds on chain 1990; mainnet deploy is the owner's own action | Q4 (open) |
+| T21 | **Mock allowlisted on mainnet** (anyone could script prices) | Mock writes are deployer-only; `script/DeployConfig.sol` never deploys a mock on chain 1990 and only accepts the 7 official QIE Oracle feeds there; `Check.s.sol` fails on a non-QIE feed on mainnet; mainnet deploy is the owner's own action | `test_params_revert_mainnetMock`, `..._mainnetNonQieFeed`, `testFuzz_isQieMainnetFeed_onlyTheSeven`, `test_check_revert_mockOnMainnet` |
+
+## Deploy tooling (Q2)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| D1 | **Wrong chain**: deploying to mainnet or another EVM by a wrong RPC or copy-paste | `eth_chainId` compared to `POC_EXPECTED_CHAIN_ID` in `deploy.sh` and again as `block.chainid` in the script; only 1983 allowed, 1990 behind `POC_MAINNET_GO=yes` + not CI + no env key | `test_chain_*`, `testFuzz_chain_revert_anyOtherChain`, `test_deploy_revert_*Chain*` |
+| D2 | **Key leak** via files, logs, git or shell history | Keystore or Ledger preferred; env key testnet only, never in `.env` (`deploy.sh` refuses key-like variable names there); format check never prints the value; `.env`, `keystore/`, `*.key`, `broadcast/`, `cache/` gitignored; gitleaks in CI | `deploy.sh` guards, CI secret scan |
+| D3 | **Wrong signer** (e.g. a personal wallet) | Signer must equal `POC_EXPECTED_DEPLOYER`; forge's default sender refused | `test_deploy_revert_wrongDeployer`, `test_deploy_revert_noSigner` |
+| D4 | **Silent build drift** (`FOUNDRY_EVM_VERSION=cancun`, optimizer changes) | `deploy.sh` refuses `FOUNDRY_*`/`DAPP_*` in env and `.env`; `test/Bytecode.t.sol` rejects `PUSH0` | `deploy.sh`, `test/Bytecode.t.sol` |
+| D5 | **Misconfigured contract** (wrong owner, maxGap, band, feeds) goes unnoticed | Bounds checked before any transaction; read-back in the same run; `Check.s.sol` re-reads live state | `test_params_*`, `CheckScriptTest` |
+| D6 | **Accidental broadcast** | Simulation always first; broadcast needs `--broadcast` and typing the chain id | `deploy.sh` |
+| D7 | **Owner = deployer hot key** | `POC_OWNER` is separate from the deployer; the deployer keeps only the mock admin role (testnet) | `test_deploy_testnet_deploysAndReadsBack` |
 
 ## Out of scope for Q1 / open items
 
-- Deploy tooling, chain-id checks and mainnet guard (Q4), publisher CLI and salt storage (Q5), indexer (Q6),
+- Publisher CLI and salt storage (Q5), indexer (Q6),
   web app (Q7), external audit and static analysis (Q10).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
-- QIE's EVM level is undocumented; compiled for `paris`. Confirm on QIE testnet before Q4.
+- QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
+- Explorer verification (`docs/VERIFY.md`) and the mainnet runbook (Q11).
