@@ -25,7 +25,9 @@
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "poc": "node packages/cli/dist/main.js",
-    "dev:web": "npm run dev -w apps/web"
+    "dev:web": "npm run dev -w apps/web",
+    "chain:local": "node scripts/local-chain.mjs",
+    "chain:warp": "node scripts/local-chain.mjs warp"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

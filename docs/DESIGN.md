@@ -1,6 +1,7 @@
-# ProofOfCall: design (Q1, testnet)
+# ProofOfCall: design
 
-Status: draft for review. Testnet only. Nothing is deployed.
+Status: live on QIE testnet (chain 1983) since 1 Nov 2026 (`deployments/qie-testnet-1983.json`). The QIE mainnet deployment
+is the owner's own step (`docs/MAINNET.md`). Off-chain parts: `docs/CLI.md`, `docs/READ_LAYER.md`, `docs/WEB.md`.
 
 ## Origin of the code
 

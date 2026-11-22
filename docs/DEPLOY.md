@@ -56,7 +56,7 @@ forge script script/Check.s.sol:Check --rpc-url https://rpc2testnet.qie.digital/
 
 The mock prices are empty (`latestRound()` = 0) until the mock admin pushes rounds; that is a separate step.
 
-### Explorer source verification (not done yet)
+### Explorer source verification (not done yet; see [`VERIFY.md`](../VERIFY.md))
 
 On 1 Nov 2026 the three contracts are **not** source-verified on `testnet.qie.digital`
 (`/api/v2/smart-contracts/<addr>` returns no `is_verified`). Verifying publishes the full Solidity source on the
@@ -161,7 +161,7 @@ Prerequisites: Foundry 1.8.6 (`foundryup -i v1.8.6`), this repo with submodules.
 5. **Deploy:** `script/deploy.sh --broadcast`, type `1983` when asked, enter the keystore password.
 6. **Check:** put the printed addresses in `.env` (`POC_ADDRESS`, `POC_CHECK_FEEDS`, `POC_MOCK_ADMIN` = the
    deployer) and run `forge script script/Check.s.sol:Check --rpc-url "$QIE_RPC_URL"` (read-only, no key).
-7. Open the printed explorer link. Source verification: see [Explorer source verification](#explorer-source-verification-not-done-yet).
+7. Open the printed explorer link. Source verification: see [`VERIFY.md`](../VERIFY.md).
 
 Outputs: `broadcast/` (tx receipts) and `cache/` (forge writes "sensitive values", e.g. the RPC URL) are
 gitignored. Do not share them blindly and never commit them.

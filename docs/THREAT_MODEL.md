@@ -103,7 +103,7 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 
 ## Out of scope for Q1 / open items
 
-- External audit and static analysis (Q10). Publisher CLI: `docs/CLI.md` (Q5); read layer: `docs/READ_LAYER.md` (Q6); web app: `docs/WEB.md` (Q7).
+- External audit and static analysis (Slither/Mythril): not done; see `docs/AUDIT.md`. Publisher CLI: `docs/CLI.md` (Q5); read layer: `docs/READ_LAYER.md` (Q6); web app: `docs/WEB.md` (Q7).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
 - QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
-- Explorer source verification (commands in `docs/DEPLOY.md`). The mainnet runbook is `docs/MAINNET.md` (Q4).
+- Explorer source verification: `VERIFY.md` (the owner's decision). The mainnet runbook is `docs/MAINNET.md` (Q4).
