@@ -68,7 +68,8 @@ export async function openNetwork(opts: NetworkOptions): Promise<Ctx> {
     rpcUrls.length === 1
       ? http(rpcUrls[0], { retryCount: 2 })
       : fallback(rpcUrls.map((u) => http(u, { retryCount: 1 })));
-  const client = createPublicClient({ chain, transport });
+  // No CCIP-read: a contract could otherwise make this tool fetch arbitrary URLs (EIP-3668 OffchainLookup).
+  const client = createPublicClient({ chain, transport, ccipRead: false });
   const chainId = await client.getChainId();
   if (chainId !== CHAIN_IDS[opts.network]) {
     throw new Error(`the RPC answered chain id ${chainId}, expected ${CHAIN_IDS[opts.network]} (${network.name})`);
