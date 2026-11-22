@@ -79,9 +79,21 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | R3 | **Poisoned or stale cache** (another contract, edited storage) | Snapshot keyed by chain and contract, validated on load, ignored when unreadable | `ignores a cache of another contract, a corrupt cache ...` |
 | R4 | **Calls scored against a non-QIE feed shown as official** | `describeFeed` flags any feed not listed for the network | `labels feeds and flags unknown ones` |
 
+## Web app (Q7)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| W1 | **Third-party scripts or trackers** read visitors or change the page | No external scripts, styles or fonts; CSP `default-src 'none'`, own scripts and styles only; `connect-src` limited to the QIE RPC origins | `dist.test.ts` |
+| W2 | **Page framed or opened with a leaking referrer** | `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer` (`vercel.json`), `noopener` on external links | `vercel.json` |
+| W3 | **Contract makes the page fetch arbitrary URLs** (EIP-3668 CCIP-read) | `ccipRead: false` on every client (also in the CLI); the CSP would block it anyway | `dist.test.ts` (no unexpected hosts) |
+| W4 | **Wrong or tampered opening** in a shared link reveals a different call | The opening must hash to the sealed commitment before the Reveal button appears; the contract checks it again | `pages.test.tsx` (`rejects an opening that does not match`) |
+| W5 | **Opening leaks to a server** | It travels only in the URL fragment, which browsers never send; the CLI refuses to create links before the horizon | C-rows above, `unit.test.ts` |
+| W6 | **XSS through on-chain strings** (labels, feed descriptions) | React escapes everything rendered; wallet icons only accepted as `data:image/` URIs | `pages.test.tsx` |
+| W7 | **Data of another network shown under this one** after switching | Loaded state is keyed by chain id and discarded on mismatch | `useNetworkData` |
+
 ## Out of scope for Q1 / open items
 
-- Web app (Q7), external audit and static analysis (Q10). Publisher CLI: `docs/CLI.md` (Q5); read layer: `docs/READ_LAYER.md` (Q6).
+- External audit and static analysis (Q10). Publisher CLI: `docs/CLI.md` (Q5); read layer: `docs/READ_LAYER.md` (Q6); web app: `docs/WEB.md` (Q7).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
 - QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
 - Explorer source verification (commands in `docs/DEPLOY.md`) and the mainnet runbook (Q11).

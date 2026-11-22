@@ -46,8 +46,8 @@ jobs:
         run: shellcheck script/*.sh
 
   typescript:
-    # Publisher CLI and shared library: format, lint, types, build, unit tests, a full lifecycle on anvil and a
-    # Chrome end-to-end test of the browser signing page (Google Chrome ships with the Ubuntu runner).
+    # Shared library, publisher CLI and web app: format, lint, types, build, unit tests, a full lifecycle on anvil, and
+    # Chrome end-to-end tests of the CLI signing page and the built web app (Google Chrome ships with the Ubuntu runner).
     name: TypeScript (format, lint, types, build, tests)
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -90,7 +90,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Tests (unit, anvil lifecycle, Chrome end-to-end)
+      - name: Tests (unit, anvil lifecycle, web pages, Chrome end-to-end)
         run: npm test
 
   secret-scan:

@@ -17,10 +17,12 @@ Status: work in progress for QIE Mainnet Hackathon 3.0. **Testnet only. Nothing 
 | `test/` | Unit, fuzz, invariant, bytecode and deploy-script tests |
 | `packages/core/` | TypeScript library shared by the CLI and the web app: ABI, networks, commitments, round proofs, openings, read layer (events, call index, scorecards, verifiers) |
 | `packages/cli/` | Publisher CLI `poc`: seal, reveal, expire, list, share (see `docs/CLI.md`) |
+| `apps/web/` | Static web app: scorecards, proof pages, wallet connect, Reveal / Expire (see `docs/WEB.md`) |
 | `docs/DESIGN.md`, `docs/THREAT_MODEL.md` | How it works and what it defends against |
 | `docs/DEPLOY.md` | QIE testnet facts, EVM-level probe, how to deploy and check |
 | `docs/CLI.md` | Publisher CLI guide (Windows PowerShell examples) |
 | `docs/READ_LAYER.md` | How the app reads calls, scorecards and verifiers straight from the chain |
+| `docs/WEB.md` | Web app: pages, actions, wallets, security headers, local run, deploying |
 
 ## Run
 
