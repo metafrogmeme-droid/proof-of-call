@@ -45,6 +45,53 @@ jobs:
       - name: shellcheck
         run: shellcheck script/*.sh
 
+  powershell:
+    # script/deploy-mainnet.ps1 is run by the owner on Windows: lint it and run its Pester tests on
+    # Windows PowerShell 5.1 and PowerShell 7 (Windows and Linux). Pester and PSScriptAnalyzer ship with the runners.
+    name: PowerShell (${{ matrix.os }}, ${{ matrix.shell }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            shell: pwsh
+          - os: windows-latest
+            shell: pwsh
+          - os: windows-latest
+            shell: powershell
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Versions
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          Get-Module -ListAvailable Pester, PSScriptAnalyzer | Sort-Object Name, Version | Format-Table Name, Version
+
+      - name: PSScriptAnalyzer
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module PSScriptAnalyzer
+          $findings = @(Invoke-ScriptAnalyzer -Path script -Recurse -Severity Warning, Error)
+          $findings | Format-Table RuleName, Severity, ScriptName, Line, Message -AutoSize -Wrap
+          if ($findings.Count -gt 0) { exit 1 }
+
+      - name: Pester
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 5.0.0
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'test/pwsh'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
+
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
