@@ -106,7 +106,9 @@ None of these can move value, and none can change the outcome of a call that is 
   `test/Bytecode.t.sol` walks the runtime bytecode and fails if `CALL`, `CALLCODE`, `DELEGATECALL`, `CREATE`,
   `CREATE2`, `SELFDESTRUCT` or `PUSH0` appear.
 - No unbounded loops (the only loop is the feed list, capped at 32).
-- Compiled with solc 0.8.28 for `evm_version = paris`, because QIE's supported EVM level is not documented yet.
+- Compiled with solc 0.8.28 for `evm_version = paris`. QIE's docs do not state an EVM level; a read-only opcode
+  probe on 1 Nov 2026 showed QIE testnet and mainnet run at Shanghai level (`PUSH0` works, Cancun opcodes do not),
+  so `paris` is safe and `cancun` must never be used. Details in `docs/DEPLOY.md`.
 
 ## Testnet mock
 

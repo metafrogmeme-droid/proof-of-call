@@ -1,0 +1,50 @@
+{
+  "network": "QIE testnet",
+  "chainId": 1983,
+  "explorer": "https://testnet.qie.digital",
+  "rpc": "https://rpc2testnet.qie.digital/",
+  "sourceCommit": "8b8e7eb",
+  "compiler": {
+    "solc": "0.8.28",
+    "evmVersion": "paris",
+    "optimizer": true,
+    "optimizerRuns": 200
+  },
+  "deployer": "0x8D0C4933Bbac89B99d0a94De8810049D5f8F3689",
+  "deployedAt": "2026-11-01T17:59:56Z",
+  "contracts": {
+    "ProofOfCall": {
+      "address": "0xb6567DB95934ec74fabe4823D0c07125bfc29C54",
+      "tx": "0xaa83a9b3a215f6a3ff86c6b7e0aea608c13e4ebc6fc17778f9c91d5832f1a574",
+      "block": 9507635,
+      "constructorArgs": {
+        "initialOwner": "0x020A4366595292aa16184536bAB2E9949d0D925F",
+        "maxGap": 21600,
+        "flatBandBps": 10,
+        "feeds": [
+          "0xa1141220424Fc103d1631BAd44039CEc0C4B6D28",
+          "0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82"
+        ]
+      },
+      "owner": "0x020A4366595292aa16184536bAB2E9949d0D925F",
+      "pendingOwner": "0x0000000000000000000000000000000000000000"
+    },
+    "MockAggregatorV3 BTC / USD": {
+      "address": "0xa1141220424Fc103d1631BAd44039CEc0C4B6D28",
+      "tx": "0x7c0045e74785630a83c235c2920b475304542a12695bee4c23e254d08d2f86db",
+      "block": 9507633,
+      "description": "BTC / USD",
+      "decimals": 8,
+      "admin": "0x8D0C4933Bbac89B99d0a94De8810049D5f8F3689"
+    },
+    "MockAggregatorV3 ETH / USD": {
+      "address": "0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82",
+      "tx": "0xed2a4e06738051b94475aa0894e98d5549792ea10b8a58bfaa6f69371666a42c",
+      "block": 9507634,
+      "description": "ETH / USD",
+      "decimals": 8,
+      "admin": "0x8D0C4933Bbac89B99d0a94De8810049D5f8F3689"
+    }
+  },
+  "explorerVerified": false
+}
