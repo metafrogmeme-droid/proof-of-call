@@ -7,7 +7,7 @@ export const ASSETS: readonly Asset[] = ['BTC', 'ETH'];
 
 export interface FeedInfo {
   asset: Asset;
-  /** e.g. "BTC / USD" */
+  /** e.g. "BTC / USDT" (QIE Oracle on mainnet) or "BTC / USD" (our testnet mock) */
   pair: string;
   address: Address;
   decimals: number;

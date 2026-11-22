@@ -21,8 +21,8 @@ BeforeAll {
             rpc              = 'https://rpc1mainnet.qie.digital/'
             explorer         = 'https://mainnet.qie.digital'
             feeds            = @(
-                [ordered]@{ asset = 'BTC'; pair = 'BTC / USD'; address = $BtcAddress; decimals = 8 },
-                [ordered]@{ asset = 'ETH'; pair = 'ETH / USD'; address = $Eth; decimals = 8 }
+                [ordered]@{ asset = 'BTC'; pair = 'BTC / USDT'; address = $BtcAddress; decimals = 8 },
+                [ordered]@{ asset = 'ETH'; pair = 'ETH / USDT'; address = $Eth; decimals = 8 }
             )
             feedVerification = [ordered]@{ status = $Status }
         }
@@ -194,6 +194,24 @@ Describe 'Get-PocMainnetConfig' {
         @($config.feeds).Count | Should -Be 2
         ($config.feeds | Where-Object { $_.asset -eq 'BTC' }).address | Should -BeExactly $btc
         ($config.feeds | Where-Object { $_.asset -eq 'ETH' }).address | Should -BeExactly $eth
+    }
+    It 'committed config is verified, with the on-chain labels and the evidence recorded next to the status' {
+        $config = Get-Content -LiteralPath (Join-Path $Repo 'deployments/qie-mainnet-1990.config.json') -Raw | ConvertFrom-Json
+        ($config.feeds | Where-Object { $_.asset -eq 'BTC' }).pair | Should -BeExactly 'BTC / USDT'
+        ($config.feeds | Where-Object { $_.asset -eq 'ETH' }).pair | Should -BeExactly 'ETH / USDT'
+        $v = $config.feedVerification
+        $v.status | Should -BeExactly 'verified'
+        $v.checkedAt | Should -Not -BeNullOrEmpty
+        $v.block | Should -Be 12088889
+        $v.chainId | Should -Be 1990
+        $v.rpc | Should -BeExactly 'https://rpc1mainnet.qie.digital/'
+        $v.docs | Should -BeLike 'https://docs.qie.digital/*'
+        $v.onChain.BTC.description | Should -BeExactly 'BTC / USDT'
+        $v.onChain.ETH.description | Should -BeExactly 'ETH / USDT'
+        $v.onChain.BTC.address | Should -BeExactly ($config.feeds | Where-Object { $_.asset -eq 'BTC' }).address
+        $v.onChain.ETH.address | Should -BeExactly ($config.feeds | Where-Object { $_.asset -eq 'ETH' }).address
+        $config.params.maxGap | Should -BeNullOrEmpty
+        Get-PocMainnetConfig -Path (Join-Path $Repo 'deployments/qie-mainnet-1990.config.json') | Should -Not -BeNullOrEmpty
     }
 }
 

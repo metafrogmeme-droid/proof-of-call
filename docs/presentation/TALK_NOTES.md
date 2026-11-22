@@ -18,7 +18,7 @@ flowchart LR
     W1[Publisher wallet<br/>MetaMask / keystore / Ledger]
     subgraph QIE chain
         POC[ProofOfCall contract]
-        ORA[QIE Oracle feeds<br/>BTC / USD, ETH / USD]
+        ORA[QIE Oracle feeds<br/>BTC / USDT, ETH / USDT]
     end
     WEB[Static web app<br/>runs in the visitor's browser]
     W2[Verifier wallet]
@@ -114,11 +114,11 @@ misses).
 
 - 207 contract tests: unit, fuzzing, invariants, a bytecode check for forbidden opcodes, and the deploy scripts,
   including an offline mainnet deployment.
-- 97 TypeScript tests:
+- 98 TypeScript tests:
   - a full HIT / MISS / FLAT / VOID / EXPIRED life cycle on a local chain;
   - the read layer rebuilding the exact on-chain scorecard;
   - real-browser tests of the signing page and of the web app (reveal from a link, expire, phone layout).
-- 32 PowerShell tests for the mainnet deploy script on Windows PowerShell 5.1 and 7.
+- 33 PowerShell tests for the mainnet deploy script on Windows PowerShell 5.1 and 7.
 - A written threat model with a test per mitigation, and a self-review with the bugs we found and fixed. One story
   worth telling: a cached block number made the app miss the newest events now and then. A test under parallel load
   caught it, and we fixed it before release.

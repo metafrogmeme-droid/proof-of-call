@@ -8,27 +8,48 @@
   "feeds": [
     {
       "asset": "BTC",
-      "pair": "BTC / USD",
+      "pair": "BTC / USDT",
       "address": "0x9E596d809a20A272c788726f592c0d1629755440",
       "decimals": 8
     },
     {
       "asset": "ETH",
-      "pair": "ETH / USD",
+      "pair": "ETH / USDT",
       "address": "0x4bb7012Fbc79fE4Ae9B664228977b442b385500d",
       "decimals": 8
     }
   ],
   "feedSource": "https://docs.qie.digital/qie-oracle/deployed-contracts/table-of-assets-contract-mapping",
   "feedVerification": {
-    "status": "pending",
-    "checkedAt": null,
-    "docs": null,
-    "onChain": null
+    "status": "verified",
+    "checkedAt": "2026-11-22T10:48:00Z",
+    "checkedBy": "owner, read-only calls from his own machine (11:48 CET)",
+    "chainId": 1990,
+    "block": 12088889,
+    "rpc": "https://rpc1mainnet.qie.digital/",
+    "docs": "https://docs.qie.digital/qie-oracle/deployed-contracts/table-of-assets-contract-mapping",
+    "docsMatch": "both addresses match the official QIE docs table",
+    "onChain": {
+      "BTC": {
+        "address": "0x9E596d809a20A272c788726f592c0d1629755440",
+        "code": "present",
+        "decimals": 8,
+        "version": 1,
+        "description": "BTC / USDT",
+        "latestRound": 51744
+      },
+      "ETH": {
+        "address": "0x4bb7012Fbc79fE4Ae9B664228977b442b385500d",
+        "code": "present, same bytecode as BTC",
+        "decimals": 8,
+        "description": "ETH / USDT",
+        "latestRound": 76462
+      }
+    }
   },
   "params": {
     "maxGap": null,
     "flatBandBps": 10,
-    "note": "maxGap: run script/FeedCadence.s.sol against chain 1990 first; the owner picks the final value at deploy time"
+    "note": "maxGap: run script/FeedCadence.s.sol against chain 1990 first (required, docs/MAINNET.md step 5); the owner picks the final value at deploy time"
   }
 }

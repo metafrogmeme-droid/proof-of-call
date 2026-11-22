@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Deploy ProofOfCall to QIE mainnet (chain 1990) with the official QIE Oracle BTC / USD and ETH / USD feeds.
+    Deploy ProofOfCall to QIE mainnet (chain 1990) with the official QIE Oracle BTC / USDT and ETH / USDT feeds.
     The owner runs this from his own machine. Full runbook: docs/MAINNET.md.
 
 .DESCRIPTION

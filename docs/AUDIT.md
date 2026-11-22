@@ -25,7 +25,7 @@ Reviewed: 22–25 Nov 2026, on the branches of PRs #4–#9 (combined in the docs
   - invariants (256 × 100): counters add up, settled at most once, holds no value;
   - a runtime bytecode walk (no `CALL`/`DELEGATECALL`/`CREATE`/`SELFDESTRUCT`/`PUSH0`);
   - deploy-script tests, incl. an offline mainnet deployment against feed code etched at the official addresses.
-- **Off-chain tests**: 97 Vitest tests.
+- **Off-chain tests**: 98 Vitest tests.
   - commitment vectors cross-checked with `cast`, and against the contract on anvil;
   - vault cryptography and tampering, local signing page security;
   - a full HIT / MISS / FLAT / VOID / EXPIRED lifecycle on anvil, after which the read layer rebuilds the exact on-chain scorecard;
@@ -64,7 +64,7 @@ Severity: High = wrong scores or lost calls for users; Medium = wrong data shown
 | F4 | Mainnet tooling | Info | The `*PASSWORD*` environment rule refused unrelated variables (`PGPASSWORD` on the Windows runner) | **Fixed** (#5): refuses key/mnemonic names and Foundry's `ETH_PASSWORD`/`CAST_PASSWORD` |
 | F5 | CLI | Info | `seal` asked for the vault password before validating its other arguments | **Fixed** (#6); subprocess test |
 | F6 | Tests | Info | Test anvils on random ports could in theory share a port and a chain | **Fixed** (#7): anvil on OS-chosen ports |
-| F7 | Mainnet | **High (process)** | The BTC / USD and ETH / USD QIE Oracle addresses come from the QIE docs and were checked when Q1 was written, but this review's environment could not reach `docs.qie.digital` or the QIE RPCs to re-verify them. The CORS behaviour of the public RPC is also untested | **Open.** `deploy-mainnet.ps1` refuses to deploy until `deployments/qie-mainnet-1990.config.json` says `verified`. To verify: `docs/MAINNET.md` (read-only commands) |
+| F7 | Mainnet | **High (process)** | The BTC / USDT and ETH / USDT QIE Oracle addresses come from the QIE docs and were checked when Q1 was written, but this review's environment could not reach `docs.qie.digital` or the QIE RPCs to re-verify them. The repo also labelled them "/ USD", while on chain they are "/ USDT" | **Closed** (22 Nov 2026): the owner verified both read-only against the QIE docs and chain 1990 (block 12088889, `rpc1mainnet`): code present, 8 decimals, descriptions `BTC / USDT` / `ETH / USDT`, recent rounds. Evidence in `deployments/qie-mainnet-1990.config.json`; labels corrected. The RPC's CORS behaviour stays open as F12 |
 | F8 | Contract | Info | Chainlink-style phase-encoded round ids are not supported across a phase boundary (such a reveal reverts and the call expires) | Accepted (documented). QIE feeds use plain ids; `FeedCadence.s.sol` checks this before deploy |
 | F9 | Contract | Info | One `maxGap` per call for entry and exit; QIE feeds update irregularly | Accepted. Chosen per measured cadence (`FeedCadence.s.sol`, `docs/MAINNET.md` step 5) |
 | F10 | Contract | Info | Scorecards count calls, unweighted. A publisher can seal UP and DOWN on the same asset | Accepted (design). Both calls are public and scored, so the record shows the hedge |
@@ -72,7 +72,7 @@ Severity: High = wrong scores or lost calls for users; Medium = wrong data shown
 | F12 | Web | Info | If the public QIE RPC refuses browser requests (CORS), visitors without a wallet see an error message instead of data | Mitigated: wallet-provider fallback; to be confirmed against the live RPC (F7) |
 | F13 | Testnet | Info | Testnet prices come from our mock feed and are pushed by the deployer key | By design (QIE testnet has no oracle); labelled "test mock" in the app; mainnet uses QIE Oracle feeds only, enforced by the deploy guards |
 
-No High or Medium finding is open in the code. F7 is a process blocker for the mainnet deployment, not a code defect.
+No High or Medium finding is open. F7, the process blocker for the mainnet deployment, was closed on 22 Nov 2026 by the owner's read-only verification; `maxGap` is still chosen with the cadence check right before the deploy (`docs/MAINNET.md` step 5).
 
 ## Residual risks and recommendations
 
