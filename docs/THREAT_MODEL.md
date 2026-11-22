@@ -70,9 +70,18 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | C6 | **Accidental mainnet transaction** | Chain id of the RPC checked; mainnet always asks for confirmation and refuses `--yes`; mainnet seals need verified feed addresses | `args.test.ts` |
 | C7 | **Keys leak through the tool** | The CLI never sees a key: browser wallet, Foundry keystore (cast prompts) or Ledger; the unlocked signer only works on chain 31337 | `cast.test.ts`, `UnlockedSigner` chain check |
 
+## Read layer (Q6)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| R1 | **RPC drops or invents events** (incomplete record shown) | Scorecards folded from events are cross-checked against the contract's `scorecard()`; events that do not fit are listed as anomalies, never dropped | lifecycle `read layer rebuilds ...`, `reports events that do not fit` |
+| R2 | **Reorg frozen into the per-viewer cache** | Only blocks at least `reorgDepth` (15) behind the head are cached; the tail is always fetched again | `caches only blocks older than the reorg depth` |
+| R3 | **Poisoned or stale cache** (another contract, edited storage) | Snapshot keyed by chain and contract, validated on load, ignored when unreadable | `ignores a cache of another contract, a corrupt cache ...` |
+| R4 | **Calls scored against a non-QIE feed shown as official** | `describeFeed` flags any feed not listed for the network | `labels feeds and flags unknown ones` |
+
 ## Out of scope for Q1 / open items
 
-- Indexer (Q6), web app (Q7), external audit and static analysis (Q10). The publisher CLI is `docs/CLI.md` (Q5).
+- Web app (Q7), external audit and static analysis (Q10). Publisher CLI: `docs/CLI.md` (Q5); read layer: `docs/READ_LAYER.md` (Q6).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
 - QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
 - Explorer source verification (commands in `docs/DEPLOY.md`) and the mainnet runbook (Q11).

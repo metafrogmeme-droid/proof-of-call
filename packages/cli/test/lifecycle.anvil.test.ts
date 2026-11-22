@@ -1,10 +1,20 @@
 import { execFile } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  buildIndex,
+  callStatus,
   computeCommitment,
+  memoryStore,
+  readScorecard,
+  resolveRevealers,
+  sameScorecard,
+  scorecardOf,
+  serializeEvents,
+  syncEvents,
+  verifierWallets,
   labelToCallId,
   openingMatches,
   parseCallRoute,
@@ -242,5 +252,53 @@ describe('publisher CLI against a local chain (anvil)', () => {
       code: 2,
       stderr: expect.stringContaining('missing --asset') as unknown,
     });
+  });
+
+  it('the read layer rebuilds every call, the scorecard and the verifiers from events alone', async () => {
+    const store = memoryStore();
+    const first = await syncEvents(ctx.client, ctx.network, store, { chunkSize: 3n, reorgDepth: 2n });
+    expect(first.cachedThrough).toBeNull();
+    const index = buildIndex(first.events);
+    expect(index.anomalies).toEqual([]);
+    const revealers = new Map<string, Address>();
+    await resolveRevealers(ctx.client, index, revealers);
+    expect(sameScorecard(scorecardOf(index, publisher), await readScorecard(ctx.client, dep.poc, publisher))).toBe(
+      true,
+    );
+    const now = (await ctx.client.getBlock()).timestamp;
+    const status = Object.fromEntries([...index.calls.values()].map((c) => [c.label ?? c.callId, callStatus(c, now)]));
+    expect(status).toEqual({
+      'RC-0001': 'HIT',
+      'RC-0002': 'MISS',
+      'RC-0003': 'FLAT',
+      'RC-0004': 'VOID',
+      'RC-0005': 'EXPIRED',
+    });
+    expect(verifierWallets(index)).toEqual([{ address: verifier, reveals: 1, expiries: 1 }]);
+
+    // Second load: everything up to head - reorgDepth comes from the cache, only the tail is fetched again.
+    const second = await syncEvents(ctx.client, ctx.network, store, { reorgDepth: 2n });
+    expect(second.cachedThrough).toBe(first.headBlock - 2n);
+    expect(second.events).toEqual(first.events);
+
+    if (process.env.UPDATE_FIXTURES === '1') {
+      const fixture = {
+        note: 'Recorded from a local anvil run of packages/cli/test/lifecycle.anvil.test.ts (UPDATE_FIXTURES=1). Local chain data, not QIE testnet or mainnet.',
+        chainId: 31337,
+        contract: dep.poc,
+        deployBlock: ctx.network.proofOfCall?.deployBlock.toString(),
+        headBlock: first.headBlock.toString(),
+        now: now.toString(),
+        publisher,
+        verifier,
+        feeds: { BTC: dep.btc, ETH: dep.eth },
+        revealers: Object.fromEntries(revealers),
+        events: serializeEvents(first.events),
+      };
+      writeFileSync(
+        new URL('../../core/test/fixtures/local-anvil-events.json', import.meta.url),
+        `${JSON.stringify(fixture, null, 2)}\n`,
+      );
+    }
   });
 });

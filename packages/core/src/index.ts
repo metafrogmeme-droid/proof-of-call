@@ -4,5 +4,6 @@ export * from './chains.js';
 export * from './commitment.js';
 export * from './networks.js';
 export * from './opening.js';
+export * from './read.js';
 export * from './rounds.js';
 export * from './validate.js';
