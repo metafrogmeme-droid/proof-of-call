@@ -1,0 +1,15 @@
+# Only the TypeScript workspace is formatted by prettier; Solidity uses forge fmt, docs are hand-written.
+/lib/
+/out/
+/cache/
+/broadcast/
+/src/
+/test/
+/script/
+/deployments/
+/.github/
+node_modules/
+**/dist/
+coverage/
+package-lock.json
+*.md

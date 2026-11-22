@@ -45,6 +45,53 @@ jobs:
       - name: shellcheck
         run: shellcheck script/*.sh
 
+  typescript:
+    # Shared library, publisher CLI and web app: format, lint, types, build, unit tests, a full lifecycle on anvil, and
+    # Chrome end-to-end tests of the CLI signing page and the built web app (Google Chrome ships with the Ubuntu runner).
+    name: TypeScript (format, lint, types, build, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.6
+
+      - name: forge build (artifacts for the ABI check and the anvil tests)
+        run: forge build
+
+      - name: npm ci (no install scripts)
+        run: npm ci --ignore-scripts
+
+      - name: ABI matches the contracts
+        run: npm run abi:check
+
+      - name: Prettier
+        run: npm run format:check
+
+      - name: Types
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Tests (unit, anvil lifecycle, web pages, Chrome end-to-end)
+        run: npm test
   powershell:
     # script/deploy-mainnet.ps1 is run by the owner on Windows: lint it and run its Pester tests on
     # Windows PowerShell 5.1 and PowerShell 7 (Windows and Linux). Pester and PSScriptAnalyzer ship with the runners.

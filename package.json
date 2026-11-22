@@ -1,0 +1,46 @@
+{
+  "name": "proof-of-call",
+  "private": true,
+  "description": "Proof of Call: publisher CLI, read layer and web app for the ProofOfCall contract on QIE",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "workspaces": [
+    "packages/core",
+    "packages/cli",
+    "apps/web"
+  ],
+  "scripts": {
+    "abi": "node scripts/gen-abi.mjs",
+    "abi:check": "node scripts/gen-abi.mjs --check",
+    "build": "tsc -b packages/core packages/cli && npm run build -w apps/web",
+    "build:web": "npm run build -w apps/web",
+    "typecheck": "tsc -b packages/core packages/cli && tsc -p packages/core/test && tsc -p packages/cli/test && tsc -p apps/web",
+    "prelint": "tsc -b packages/core packages/cli",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "poc": "node packages/cli/dist/main.js",
+    "dev:web": "npm run dev -w apps/web",
+    "chain:local": "node scripts/local-chain.mjs",
+    "chain:warp": "node scripts/local-chain.mjs warp"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "eslint": "10.14.0",
+    "globals": "16.5.0",
+    "playwright": "1.65.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "3.2.7"
+  },
+  "overrides": {
+    "vite": "7.3.7"
+  }
+}

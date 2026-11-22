@@ -27,7 +27,7 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | T1 | **Front-running a seal**: an attacker copies a pending commitment into their own namespace | The commitment binds `publisher`; a copied commitment can never be opened by the copier and expires as a miss for them | `test_reveal_revert_openingForOtherPublisher` |
 | T2 | **Front-running a reveal**: an attacker sees the opening in the mempool and reveals first | Harmless: the outcome is fully determined by the opening and the proven rounds, and is credited to the publisher | `test_reveal_hitUp` (third-party reveal) |
 | T3 | **Cross-chain / cross-deployment replay** of commitments | `chainid` and `address(this)` are in the commitment | `test_computeCommitment_binds*` |
-| T4 | **Salt leak or weak salt** reveals the call early | Salt is a 32-byte secret held by the publisher (Q5 CLI keeps it in a local encrypted store, never logged). Without a salt only 2 x (number of feeds) openings exist, so a weak salt is brute-forceable: the CLI must use 32 random bytes | n/a (off-chain, Q5) |
+| T4 | **Salt leak or weak salt** reveals the call early | Salt is 32 bytes from the platform CSPRNG (`randomSalt`), kept only in the publisher's encrypted vault and never logged; `share`/`export` refuse before the horizon. Without a salt only 2 x (number of feeds) openings exist, so a weak salt would be brute-forceable | `randomSalt` test, vault tests, lifecycle `refuses to reveal, share or export before the horizon` |
 | T5 | **Cherry-picking**: reveal winners, hide losers | Anyone can `expire` an unrevealed call after `revealBy`; it counts as a miss | `ProofOfCallExpireTest`, fuzz timing |
 | T6 | **Flipping a call** (reveal DOWN for a sealed UP) | Direction is in the commitment | `test_reveal_revert_wrongDirection`, fuzz binding |
 | T7 | **Look-back or convenient pricing**: pass an older or later round | Round proofs require the first round at or after each target (`r` and `r - 1` read on chain) | `test_reveal_revert_entryRoundBeforeCommit`, `..._entryNotFirstAfterSeal`, `..._exitNotFirstAfterHorizon`, fuzz `onlyFirstRoundAccepted` |
@@ -68,11 +68,42 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | D11 | **A stale broadcast file is recorded as the mainnet deploy** (e.g. after a rehearsal) | The record is only written from a broadcast file newer than this run, after `cast code` finds the contract on the target RPC and `Check.s.sol` passes; an existing record is never overwritten and blocks a second deploy | Pester `Get-PocBroadcastRun`, `refuses to deploy twice` |
 | D12 | **`maxGap` too small for the real feed cadence** (calls void) or too large (stale prices) | `script/FeedCadence.s.sol` measures the last 96 rounds and recommends a value; it also checks the round-proof assumptions (plain ids, monotonic `updatedAt`, `answeredInRound`) | `test/FeedCadence.t.sol` |
 | D13 | **Deployer is the owner's main wallet** | The runbook uses a fresh gas-only keystore (or Ledger); `POC_OWNER` is the MetaMask address; `POC_EXPECTED_DEPLOYER` is mandatory on mainnet | `test_params_revert_mainnetNoExpectedDeployer`, `test_deploy_revert_mainnetWrongSigner` |
+## Publisher CLI (Q5)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| C1 | **Salt lost** (crash, deleted file): the call can never be revealed and expires as a MISS | The vault entry is written before the seal is sent; atomic replace with a `.bak` copy; lock file against concurrent writers; `list` finds seals that were never mined | `vault.test.ts`, lifecycle `spots a seal that was never mined` |
+| C2 | **Vault file stolen or edited** | scrypt (N = 2^17) + AES-256-GCM, header authenticated as AAD, entries validated on load; file mode 0600; must live outside the repository | `rejects a wrong password and any tampering`, `keeps the vault outside the repository` |
+| C3 | **Seal sent from the wrong account** (commitment bound to another publisher, can never be opened) | `--from` is required; the signing page refuses other accounts; cast signer compares the keystore/Ledger address first; mined `from` re-checked | `refuses to send from another account` (Chromium e2e), `sends nothing when the wallet is another address` |
+| C4 | **A website drives the local signing page** (CSRF, DNS rebinding) | 127.0.0.1 only, 256-bit random path, exact `Host` and `Origin` checks, JSON only, one answer, timeout, nonce CSP, no external resources | `browser.test.ts` |
+| C5 | **Wallet or RPC substitutes the transaction** | After mining, sender, contract, calldata, status and the `Sealed`/`Revealed` event are compared with what was prepared | `sendAndConfirm` in every lifecycle step |
+| C6 | **Accidental mainnet transaction** | Chain id of the RPC checked; mainnet always asks for confirmation and refuses `--yes`; mainnet seals need verified feed addresses | `args.test.ts` |
+| C7 | **Keys leak through the tool** | The CLI never sees a key: browser wallet, Foundry keystore (cast prompts) or Ledger; the unlocked signer only works on chain 31337 | `cast.test.ts`, `UnlockedSigner` chain check |
+
+## Read layer (Q6)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| R1 | **RPC drops or invents events** (incomplete record shown) | Scorecards folded from events are cross-checked against the contract's `scorecard()`; events that do not fit are listed as anomalies, never dropped | lifecycle `read layer rebuilds ...`, `reports events that do not fit` |
+| R2 | **Reorg frozen into the per-viewer cache** | Only blocks at least `reorgDepth` (15) behind the head are cached; the tail is always fetched again | `caches only blocks older than the reorg depth` |
+| R3 | **Poisoned or stale cache** (another contract, edited storage) | Snapshot keyed by chain and contract, validated on load, ignored when unreadable | `ignores a cache of another contract, a corrupt cache ...` |
+| R4 | **Calls scored against a non-QIE feed shown as official** | `describeFeed` flags any feed not listed for the network | `labels feeds and flags unknown ones` |
+
+## Web app (Q7)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| W1 | **Third-party scripts or trackers** read visitors or change the page | No external scripts, styles or fonts; CSP `default-src 'none'`, own scripts and styles only; `connect-src` limited to the QIE RPC origins | `dist.test.ts` |
+| W2 | **Page framed or opened with a leaking referrer** | `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer` (`vercel.json`), `noopener` on external links | `vercel.json` |
+| W3 | **Contract makes the page fetch arbitrary URLs** (EIP-3668 CCIP-read) | `ccipRead: false` on every client (also in the CLI); the CSP would block it anyway | `dist.test.ts` (no unexpected hosts) |
+| W4 | **Wrong or tampered opening** in a shared link reveals a different call | The opening must hash to the sealed commitment before the Reveal button appears; the contract checks it again | `pages.test.tsx` (`rejects an opening that does not match`) |
+| W5 | **Opening leaks to a server** | It travels only in the URL fragment, which browsers never send; the CLI refuses to create links before the horizon | C-rows above, `unit.test.ts` |
+| W6 | **XSS through on-chain strings** (labels, feed descriptions) | React escapes everything rendered; wallet icons only accepted as `data:image/` URIs | `pages.test.tsx` |
+| W7 | **Data of another network shown under this one** after switching | Loaded state is keyed by chain id and discarded on mismatch | `useNetworkData` |
 
 ## Out of scope for Q1 / open items
 
-- Publisher CLI and salt storage (Q5), indexer (Q6),
-  web app (Q7), external audit and static analysis (Q10).
+- External audit and static analysis (Slither/Mythril): not done; see `docs/AUDIT.md`. Publisher CLI: `docs/CLI.md` (Q5); read layer: `docs/READ_LAYER.md` (Q6); web app: `docs/WEB.md` (Q7).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
 - QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
-- Explorer source verification (commands in `docs/DEPLOY.md`). The mainnet runbook is `docs/MAINNET.md` (Q4).
+- Explorer source verification: `VERIFY.md` (the owner's decision). The mainnet runbook is `docs/MAINNET.md` (Q4).

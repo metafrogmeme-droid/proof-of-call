@@ -21,3 +21,14 @@ salts/
 .idea/
 .DS_Store
 node_modules/
+
+# TypeScript workspace
+**/dist/
+*.tsbuildinfo
+test-results/
+playwright-report/
+# Local demo deployments (anvil), never committed
+deployments/local-*.json
+
+# Exported openings (public only after the horizon; keep them out of git anyway)
+opening-*.json

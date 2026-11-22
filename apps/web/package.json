@@ -1,0 +1,29 @@
+{
+  "name": "@proof-of-call/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static web app: scorecards and proof pages read straight from the QIE chain",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@proof-of-call/core": "0.1.0",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "viem": "2.57.14"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "5.2.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "jsdom": "27.4.0",
+    "vite": "7.3.7"
+  }
+}
