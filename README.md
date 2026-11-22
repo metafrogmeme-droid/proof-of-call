@@ -10,7 +10,7 @@ Built for QIE Mainnet Hackathon 3.0 by HUMANOID-TRADERS / RUNECLAW.
 | Network | Status |
 |---|---|
 | QIE testnet (chain 1983) | **Live since 1 Nov 2026**: ProofOfCall [`0xb6567DB9…bfc29C54`](https://testnet.qie.digital/address/0xb6567DB95934ec74fabe4823D0c07125bfc29C54), record in `deployments/qie-testnet-1983.json` |
-| QIE mainnet (chain 1990) | Deployed by the owner from his own wallet with the official QIE Oracle BTC / USD and ETH / USD feeds (runbook `docs/MAINNET.md`). The address goes into `deployments/qie-mainnet-1990.json` |
+| QIE mainnet (chain 1990) | Deployed by the owner from his own wallet with the official QIE Oracle BTC / USDT and ETH / USDT feeds, verified read-only by the owner on 22 Nov 2026 (runbook `docs/MAINNET.md`). The address goes into `deployments/qie-mainnet-1990.json` |
 
 ## The problem
 
@@ -56,7 +56,7 @@ Hard properties (`docs/DESIGN.md`):
   no Cancun opcodes (`docs/DEPLOY.md`). The build is pinned to `paris`, and the deploy scripts refuse any build that
   contains PUSH0 or Cancun opcodes.
 - **QIE Oracle**: scoring uses the official QIE Oracle feeds through their Chainlink-style AggregatorV3 interface (BTC
-  / USD and ETH / USD on mainnet). The round-proof design uses QIE's plain round ids. `script/FeedCadence.s.sol`
+  / USDT and ETH / USDT on mainnet). The round-proof design uses QIE's plain round ids. `script/FeedCadence.s.sol`
   measures each feed's update cadence to set `maxGap`. QIE testnet has no oracle contracts, so testnet uses our mock feed.
 - **QIE wallets and infrastructure**: the web app connects the QIE Wallet extension, MetaMask and other injected
   wallets via EIP-6963, and adds the QIE network to the wallet when needed. It reads the public QIE RPCs and links every

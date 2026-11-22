@@ -10,8 +10,8 @@ const mainnetConfig = (status = 'verified') => ({
   rpc: 'https://rpc1mainnet.qie.digital/',
   explorer: 'https://mainnet.qie.digital',
   feeds: [
-    { asset: 'BTC', pair: 'BTC / USD', address: '0x9E596d809a20A272c788726f592c0d1629755440', decimals: 8 },
-    { asset: 'ETH', pair: 'ETH / USD', address: '0x4bb7012Fbc79fE4Ae9B664228977b442b385500d', decimals: 8 },
+    { asset: 'BTC', pair: 'BTC / USDT', address: '0x9E596d809a20A272c788726f592c0d1629755440', decimals: 8 },
+    { asset: 'ETH', pair: 'ETH / USDT', address: '0x4bb7012Fbc79fE4Ae9B664228977b442b385500d', decimals: 8 },
   ],
   feedVerification: { status },
 });
@@ -52,6 +52,20 @@ describe('loadNetworks', () => {
     expect(mainnet?.feeds.map((f) => f.kind)).toEqual(['qie-oracle', 'qie-oracle']);
     expect(mainnet?.feedsVerified).toBe(true);
     expect(parseMainnet(mainnetConfig('pending')).feedsVerified).toBe(false);
+    if (!mainnet) throw new Error('unreachable');
+    expect(feedFor(mainnet, 'BTC').pair).toBe('BTC / USDT'); // the asset is still derived from "BTC / USDT"
+    expect(feedFor(mainnet, 'ETH').pair).toBe('ETH / USDT');
+  });
+
+  it('reads the committed mainnet config: verified QIE Oracle feeds with their on-chain labels', () => {
+    const config: unknown = JSON.parse(readFileSync(new URL('deployments/qie-mainnet-1990.config.json', repo), 'utf8'));
+    const mainnet = parseMainnet(config);
+    expect(mainnet.feedsVerified).toBe(true);
+    expect(mainnet.proofOfCall).toBeNull();
+    expect(mainnet.feeds.map((f) => [f.asset, f.pair, f.address, f.decimals, f.kind])).toEqual([
+      ['BTC', 'BTC / USDT', '0x9E596d809a20A272c788726f592c0d1629755440', 8, 'qie-oracle'],
+      ['ETH', 'ETH / USDT', '0x4bb7012Fbc79fE4Ae9B664228977b442b385500d', 8, 'qie-oracle'],
+    ]);
   });
 
   it('picks up the mainnet deployment record', () => {

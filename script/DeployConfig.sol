@@ -10,7 +10,7 @@ library DeployConfig {
     /// @dev QIE mainnet, same page; eth_chainId 0x7c6.
     uint256 internal constant QIE_MAINNET = 1990;
 
-    /// @dev Official QIE Oracle feeds used by the hackathon deployment (BTC / USD, ETH / USD), see isQieMainnetFeed.
+    /// @dev Official QIE Oracle feeds used by the hackathon deployment (BTC / USDT, ETH / USDT), see isQieMainnetFeed.
     address internal constant QIE_MAINNET_BTC_USD = 0x9E596d809a20A272c788726f592c0d1629755440;
     address internal constant QIE_MAINNET_ETH_USD = 0x4bb7012Fbc79fE4Ae9B664228977b442b385500d;
 

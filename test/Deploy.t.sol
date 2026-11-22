@@ -390,7 +390,7 @@ contract DeployScriptTest is DeployTestBase {
     }
 
     /// @dev Offline mainnet dry run: chain id 1990, feed code etched at the official QIE Oracle addresses
-    ///      (decimals 8), keystore-style signer (no env key), BTC / USD + ETH / USD only. Exercises every
+    ///      (decimals 8), keystore-style signer (no env key), BTC / USDT + ETH / USDT only. Exercises every
     ///      mainnet guard, the deployment itself and the read-back, without any network.
     function test_deploy_mainnet_etchedFeeds_deploysAndReadsBack() public {
         address[] memory feeds = _btcEth();

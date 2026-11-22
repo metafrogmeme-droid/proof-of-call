@@ -11,7 +11,7 @@ import {DeployConfig} from "./DeployConfig.sol";
 ///
 ///   forge script script/FeedCadence.s.sol:FeedCadence --rpc-url https://rpc1mainnet.qie.digital/
 ///
-///   POC_CADENCE_FEEDS   comma-separated feeds (default on chain 1990: QIE Oracle BTC / USD and ETH / USD)
+///   POC_CADENCE_FEEDS   comma-separated feeds (default on chain 1990: QIE Oracle BTC / USDT and ETH / USDT)
 ///   POC_CADENCE_ROUNDS  how many recent rounds to sample (default 96, 2..500)
 ///
 /// It also checks what ProofOfCall's round proofs assume: plain round ids (no Chainlink phase bits),

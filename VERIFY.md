@@ -40,7 +40,7 @@ forge verify-contract 0xF0319b3Ab44A85A10cc1c1D800911CDADDe90f82 src/mocks/MockA
 ## 2. QIE mainnet (chain 1990), after the owner's deployment
 
 Take the address, `maxGap` and `flatBandBps` from `deployments/qie-mainnet-1990.json` (written by
-`script/deploy-mainnet.ps1`). The feeds are the QIE Oracle BTC / USD and ETH / USD feeds, in this order. Only
+`script/deploy-mainnet.ps1`). The feeds are the QIE Oracle BTC / USDT and ETH / USDT feeds, in this order. Only
 `ProofOfCall` is verified on mainnet: the QIE Oracle feeds are QIE's own contracts.
 
 Windows PowerShell:

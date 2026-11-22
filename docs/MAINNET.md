@@ -3,8 +3,9 @@
 Status: **not deployed.** This is the owner's own step (planned 25–26 Nov 2026), run from the owner's machine with
 the owner's wallet. Nothing in this runbook sends a transaction until step 7, and even then only after you type `1990`.
 
-Before step 6 you need a version of this repo where `deployments/qie-mainnet-1990.config.json` says
-`"feedVerification": {"status": "verified", ...}`. The deploy script refuses unverified feed addresses.
+The two feed addresses were **verified** read-only by the owner on 22 Nov 2026 (details under "Feed addresses"), and
+`deployments/qie-mainnet-1990.config.json` says `"feedVerification": {"status": "verified", ...}`. The deploy script
+still refuses any config whose status is not `verified`. **Step 5 (feed cadence) is mandatory before step 6.**
 
 ## What gets deployed
 
@@ -13,23 +14,33 @@ One contract, `ProofOfCall(owner, maxGap, flatBandBps, feeds)`:
 | Argument | Value |
 |---|---|
 | `owner` | your MetaMask address `0x020A4366595292aa16184536bAB2E9949d0D925F` (can manage the feed list and defaults; cannot touch any call) |
-| `maxGap` | from step 5 (seconds) |
+| `maxGap` | from step 5 (seconds; there is no default, you pass it as `-MaxGap`) |
 | `flatBandBps` | `10` (0.10 %), same as testnet |
-| `feeds` | the official QIE Oracle **BTC / USD** and **ETH / USD** feeds only (owner decision, 22 Nov); more can be added later with `addFeeds` |
+| `feeds` | the official QIE Oracle **BTC / USDT** and **ETH / USDT** feeds only (owner decision, 22 Nov); more can be added later with `addFeeds` |
 
 No mock feed is ever deployed on mainnet. The contract holds no funds, accepts no value and cannot be upgraded.
 The deployer key has **no rights** after the deployment: it only pays the gas.
 
 ### Feed addresses
 
-| Pair | Address | Source |
+| Pair (on-chain `description()`) | Address | Source |
 |---|---|---|
-| BTC / USD | `0x9E596d809a20A272c788726f592c0d1629755440` | [QIE docs: Table of Assets → Contract Mapping][qie-feeds] |
-| ETH / USD | `0x4bb7012Fbc79fE4Ae9B664228977b442b385500d` | same page |
+| BTC / USDT | `0x9E596d809a20A272c788726f592c0d1629755440` | [QIE docs: Table of Assets → Contract Mapping][qie-feeds] |
+| ETH / USDT | `0x4bb7012Fbc79fE4Ae9B664228977b442b385500d` | same page |
+
+Prices are quoted in USDT, with 8 decimals.
+
+**Verified** by the owner on 22 Nov 2026, 11:48 CET (10:48 UTC), read-only from his own machine, at block 12088889 of
+chain 1990 via `https://rpc1mainnet.qie.digital/`. Both addresses match the QIE docs table, and on chain:
+
+| Feed | Code | `decimals()` | `version()` | `description()` | `latestRoundData()` |
+|---|---|---|---|---|---|
+| BTC | present | 8 | 1 | `BTC / USDT` | OK, round 51744 |
+| ETH | present, same bytecode as BTC | 8 | | `ETH / USDT` | OK, round 76462 |
 
 The same two addresses are in `script/DeployConfig.sol` (`QIE_MAINNET_BTC_USD`, `QIE_MAINNET_ETH_USD`) and in
-`deployments/qie-mainnet-1990.config.json`; a Pester test fails if they ever differ. Verification status and evidence
-live in the `feedVerification` block of that config file. You can re-check them yourself at any time (read-only):
+`deployments/qie-mainnet-1990.config.json`; a Pester test fails if they ever differ. The verification status and this evidence
+are recorded in the `feedVerification` block of that config file. You can re-check them yourself at any time (read-only):
 
 ```powershell
 $R = 'https://rpc1mainnet.qie.digital/'
@@ -40,7 +51,7 @@ foreach ($f in '0x9E596d809a20A272c788726f592c0d1629755440', '0x4bb7012Fbc79fE4A
 }
 ```
 
-Expected: `BTC / USD` / `ETH / USD`, `8`, and a recent round (plain round id, `updatedAt` a recent Unix time).
+Expected: `BTC / USDT` / `ETH / USDT`, `8`, and a recent round (plain round id, `updatedAt` a recent Unix time).
 
 [qie-feeds]: https://docs.qie.digital/qie-oracle/deployed-contracts/table-of-assets-contract-mapping
 
@@ -113,7 +124,11 @@ Send roughly 3 x (2,300,000 x gas price) wei of QIE from your MetaMask to `$Depl
 cast balance <Deployer> --ether --rpc-url $R
 ```
 
-## 5. Choose `maxGap` (read-only)
+## 5. Measure the feed cadence and choose `maxGap` (read-only, required)
+
+**Do not skip this step.** Run it on the day of the deployment, right before step 6. The feeds do not update on a fixed
+schedule: in the verification snapshot (22 Nov 2026, block 12088889) the latest ETH / USDT round was already about
+14 minutes old.
 
 `maxGap` is how late the first oracle update after a seal (or after the call's horizon) may come before the call is
 scored `VOID` instead of HIT / MISS / FLAT. It also moves the reveal deadline: `revealBy >= horizon end + maxGap + 1 h`.
@@ -126,8 +141,9 @@ forge script script/FeedCadence.s.sol:FeedCadence --rpc-url https://rpc1mainnet.
 ```
 
 It prints the min / median / max gap between updates over the last 96 rounds, the time since the latest update, and a
-recommended `POC_MAX_GAP` (1.5 x the worst gap, rounded up to 15 minutes, at least 1 hour). Use that value unless you
-have a reason not to.
+recommended `POC_MAX_GAP` (1.5 x the worst gap, rounded up to 15 minutes, at least 1 hour). Use that value as
+`-MaxGap` in steps 6 and 7 unless you have a reason not to. The config file leaves `maxGap` empty on purpose: there is
+no default, and the deploy script requires `-MaxGap`.
 
 **Stop and report** if any feed shows `plain ids false`, `monotonic false`, `answered false` or `complete false`: the
 on-chain round proofs assume plain, ordered round ids.

@@ -73,7 +73,7 @@ nothing. (READ_LAYER)
 ## QIE
 
 **How exactly do you use QIE?**
-The contract runs on QIE testnet and mainnet. Scores come from QIE Oracle feeds (BTC / USD, ETH / USD). The app works
+The contract runs on QIE testnet and mainnet. Scores come from QIE Oracle feeds (BTC / USDT, ETH / USDT). The app works
 with QIE Wallet and MetaMask, adds the QIE network to the wallet, reads the QIE RPCs and links every transaction to the
 QIE explorers.
 
