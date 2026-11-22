@@ -130,7 +130,7 @@ describe('web app end to end (built bundle, Chromium, anvil)', () => {
   });
 
   it('shows the network overview read from the chain', async () => {
-    const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+    const page = await browser.newPage({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: shots ? 2 : 1 });
     await page.goto(`${appUrl}#/net/31337`);
     await page.getByText('Proof of Call on Local anvil').waitFor();
     await page.locator('.stat', { hasText: 'Sealed calls' }).locator('.stat-value', { hasText: '2' }).waitFor();
@@ -140,7 +140,7 @@ describe('web app end to end (built bundle, Chromium, anvil)', () => {
   });
 
   it('lets a verifier reveal a call from the shared link, then shows the outcome', async () => {
-    const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+    const page = await browser.newPage({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: shots ? 2 : 1 });
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => {
@@ -174,7 +174,7 @@ describe('web app end to end (built bundle, Chromium, anvil)', () => {
   });
 
   it('lets anyone expire an overdue call, and the scorecard and verifiers follow', async () => {
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: shots ? 2 : 1 });
     await injectWallet(page, anvil, verifier);
     await page.goto(`${appUrl}#/call/31337/${publisher}/${overdue.callId}`);
     await page.getByText('Not revealed in time').first().waitFor();

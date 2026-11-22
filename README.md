@@ -116,7 +116,8 @@ entry served as a design reference only. No code from it is reused (`docs/DESIGN
 | Q5 | Publisher CLI and shared TypeScript core: encrypted salt vault, browser-wallet / keystore / Ledger signing | [#6](https://github.com/metafrogmeme-droid/proof-of-call/pull/6) |
 | Q6 | Read layer: calls, scorecards and verifiers straight from chain events, per-browser cache | [#7](https://github.com/metafrogmeme-droid/proof-of-call/pull/7) |
 | Q7 | Static web app: scorecards, proof pages with in-browser verification, wallet connect, Reveal / Expire | [#8](https://github.com/metafrogmeme-droid/proof-of-call/pull/8) |
-| Q8 | This docs pack: README, self-review (`docs/AUDIT.md`), explorer verification (`VERIFY.md`), local demo chain | this PR |
+| Q8 | Docs pack: README, self-review (`docs/AUDIT.md`), explorer verification (`VERIFY.md`), local demo chain | [#9](https://github.com/metafrogmeme-droid/proof-of-call/pull/9) |
+| Q9 | Presentation: demo-video script, talk notes, Q&A sheet, screenshots (`docs/presentation/`) | [#10](https://github.com/metafrogmeme-droid/proof-of-call/pull/10) |
 
 ## Traction plan
 
@@ -153,7 +154,7 @@ entry served as a design reference only. No code from it is reused (`docs/DESIGN
 | `apps/web/` | Static web app (`docs/WEB.md`) |
 | `deployments/` | Deployment records (testnet live; mainnet config, plus the record after the owner's deploy) |
 | `scripts/` | ABI generator, local demo chain |
-| `docs/` | `DESIGN.md`, `THREAT_MODEL.md`, `AUDIT.md`, `DEPLOY.md`, `MAINNET.md`, `CLI.md`, `READ_LAYER.md`, `WEB.md` |
+| `docs/` | `DESIGN.md`, `THREAT_MODEL.md`, `AUDIT.md`, `DEPLOY.md`, `MAINNET.md`, `CLI.md`, `READ_LAYER.md`, `WEB.md`, `presentation/` |
 | `VERIFY.md` | Blockscout source verification commands (run only on the owner's decision) |
 
 Licence: MIT (see `LICENSE`).
