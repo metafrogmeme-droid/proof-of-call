@@ -77,7 +77,7 @@ function Assert-PocTool {
 function Assert-PocCleanEnvironment {
     <#
         Refuses to run when the environment could change the build, leak or bypass a secret, or mix in testnet
-        settings: FOUNDRY_*/DAPP_* variables, key/mnemonic/password variables (names only, values never read),
+        settings: FOUNDRY_*/DAPP_* variables, key/mnemonic variables and ETH_PASSWORD/CAST_PASSWORD (names only, values never read),
         CI, or a .env file in the repo (forge would load it).
     #>
     param([Parameter(Mandatory = $true)][string]$RepoRoot)
@@ -86,7 +86,8 @@ function Assert-PocCleanEnvironment {
     if ($build.Count -gt 0) {
         throw "Unset these variables first (they override foundry.toml): $($build -join ', ')"
     }
-    $secret = @($names | Where-Object { $_ -match '(PRIVATE_KEY|MNEMONIC|SEED_PHRASE|PASSWORD)' })
+    # Key material, and the keystore passwords Foundry reads from the environment (they would unlock it silently).
+    $secret = @($names | Where-Object { $_ -match '(PRIVATE_KEY|MNEMONIC|SEED_PHRASE)' -or $_ -match '^(ETH|CAST)_PASSWORD$' })
     if ($secret.Count -gt 0) {
         throw "Unset these variables first (keys and passwords never go in the environment; values not shown): $($secret -join ', ')"
     }

@@ -47,7 +47,8 @@ Expected: `BTC / USD` / `ETH / USD`, `8`, and a recent round (plain round id, `u
 ## Rules for the whole run
 
 - **Never paste a private key, seed phrase or password** into PowerShell, a file, a chat or an environment variable.
-  The script refuses any `*PRIVATE_KEY*`, `*MNEMONIC*`, `*PASSWORD*` variable and never reads values.
+  The script refuses any `*PRIVATE_KEY*`, `*MNEMONIC*`, `*SEED_PHRASE*` variable and Foundry's `ETH_PASSWORD` /
+  `CAST_PASSWORD` (they would unlock the keystore without a prompt), and never reads values.
 - Use **one fresh PowerShell window**. Everything the script sets lives only in its own process and is removed at the end.
   Do not put `POC_*` variables in your PowerShell profile.
 - If anything looks wrong before step 7, stop: nothing has been sent.
@@ -203,7 +204,7 @@ Explorer source verification is a separate decision (it publishes the source): s
 
 | Message | Meaning | What to do |
 |---|---|---|
-| `Unset these variables first ...` | a `FOUNDRY_*`/`DAPP_*` or key/password variable is set | `Remove-Item Env:NAME` (or open a fresh window) |
+| `Unset these variables first ...` | a `FOUNDRY_*`/`DAPP_*`, key or `ETH_PASSWORD`/`CAST_PASSWORD` variable is set | `Remove-Item Env:NAME` (or open a fresh window) |
 | `A .env file is in the repo folder` | forge would load it | move it out (step 2) |
 | `Feed addresses in the config are not verified yet` | this repo version has unverified feeds | update to the version with `"status": "verified"` |
 | `RPC chain id is ..., expected 1990` | wrong RPC | use `https://rpc1mainnet.qie.digital/` |

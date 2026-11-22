@@ -131,7 +131,7 @@ Describe 'Assert-PocCleanEnvironment' {
     }
     AfterEach {
         if ($null -ne $SavedCi) { $env:CI = $SavedCi }
-        Remove-Item Env:FOUNDRY_EVM_VERSION, Env:DEPLOYER_PRIVATE_KEY -ErrorAction SilentlyContinue
+        Remove-Item Env:FOUNDRY_EVM_VERSION, Env:DEPLOYER_PRIVATE_KEY, Env:ETH_PASSWORD, Env:CAST_PASSWORD -ErrorAction SilentlyContinue
     }
     It 'passes in a clean environment' {
         { Assert-PocCleanEnvironment -RepoRoot $Clean } | Should -Not -Throw
@@ -150,6 +150,13 @@ Describe 'Assert-PocCleanEnvironment' {
             $_.Exception.Message | Should -BeLike '*DEPLOYER_PRIVATE_KEY*'
             $_.Exception.Message | Should -Not -BeLike '*not-a-real-value-123*'
         }
+    }
+    It 'refuses the keystore password variables Foundry reads' {
+        $env:ETH_PASSWORD = 'x'
+        { Assert-PocCleanEnvironment -RepoRoot $Clean } | Should -Throw -ExpectedMessage '*ETH_PASSWORD*'
+        Remove-Item Env:ETH_PASSWORD
+        $env:CAST_PASSWORD = 'x'
+        { Assert-PocCleanEnvironment -RepoRoot $Clean } | Should -Throw -ExpectedMessage '*CAST_PASSWORD*'
     }
     It 'refuses CI' {
         $env:CI = 'true'
@@ -239,7 +246,7 @@ Describe 'Invoke-PocMainnetDeploy' {
         Set-NativeMock
         $root = New-TestRepo
         Invoke-PocMainnetDeploy @Base -RepoRoot $root
-        $log = Get-InteractiveLog -Root $root
+        $log = @(Get-InteractiveLog -Root $root)
         $log.Count | Should -Be 1
         $log[0] | Should -BeLike "script script/Deploy.s.sol:Deploy --rpc-url https://rpc1mainnet.qie.digital/ --account qie-mainnet-deployer --sender $($Deployer)|go=yes|feeds=$($Btc),$($Eth)|*"
         $log[0] | Should -Not -BeLike '*--broadcast*'
@@ -253,7 +260,7 @@ Describe 'Invoke-PocMainnetDeploy' {
         Set-NativeMock
         $root = New-TestRepo
         Invoke-PocMainnetDeploy @Base -RepoRoot $root -Broadcast
-        $log = Get-InteractiveLog -Root $root
+        $log = @(Get-InteractiveLog -Root $root)
         $log.Count | Should -Be 3
         $log[1] | Should -BeLike '*--broadcast --slow|go=yes*'
         $log[2] | Should -BeLike "script script/Check.s.sol:Check --rpc-url https://rpc1mainnet.qie.digital/|go=yes|*|addr=$($PocAddress)"
@@ -269,7 +276,7 @@ Describe 'Invoke-PocMainnetDeploy' {
         Mock Read-PocConfirmation -ModuleName MainnetDeploy { '1983' }
         $root = New-TestRepo
         { Invoke-PocMainnetDeploy @Base -RepoRoot $root -Broadcast } | Should -Throw -ExpectedMessage '*Not confirmed*'
-        (Get-InteractiveLog -Root $root).Count | Should -Be 1
+        @(Get-InteractiveLog -Root $root).Count | Should -Be 1
         $env:POC_MAINNET_GO | Should -BeNullOrEmpty
     }
 
@@ -277,7 +284,7 @@ Describe 'Invoke-PocMainnetDeploy' {
         Set-NativeMock -ChainId '1983'
         $root = New-TestRepo
         { Invoke-PocMainnetDeploy @Base -RepoRoot $root } | Should -Throw -ExpectedMessage '*expected 1990*'
-        (Get-InteractiveLog -Root $root).Count | Should -Be 0
+        @(Get-InteractiveLog -Root $root).Count | Should -Be 0
     }
 
     It 'refuses feeds without code or with other decimals' {
@@ -299,7 +306,7 @@ Describe 'Invoke-PocMainnetDeploy' {
         $root = New-TestRepo
         Set-Content -LiteralPath (Join-Path $root 'deployments/qie-mainnet-1990.json') -Value '{}'
         { Invoke-PocMainnetDeploy @Base -RepoRoot $root -Broadcast } | Should -Throw -ExpectedMessage '*already exists*'
-        (Get-InteractiveLog -Root $root).Count | Should -Be 0
+        @(Get-InteractiveLog -Root $root).Count | Should -Be 0
     }
 
     It 'refuses unverified feed addresses' {
@@ -322,14 +329,14 @@ Describe 'Invoke-PocMainnetDeploy' {
         Set-NativeMock
         $root = New-TestRepo
         Invoke-PocMainnetDeploy -Owner $Owner -Deployer $Deployer -MaxGap 21600 -Ledger -RepoRoot $root
-        (Get-InteractiveLog -Root $root)[0] | Should -BeLike "*--ledger --sender $($Deployer)|*"
+        @(Get-InteractiveLog -Root $root)[0] | Should -BeLike "*--ledger --sender $($Deployer)|*"
     }
 
     It 'rehearsal: local anvil fork only, unlocked signer, funds the fork, writes no record' {
         Set-NativeMock
         $root = New-TestRepo
         Invoke-PocMainnetDeploy -Owner $Owner -Deployer $Deployer -MaxGap 21600 -Rehearsal -RpcUrl 'http://127.0.0.1:8545' -Broadcast -RepoRoot $root
-        $log = Get-InteractiveLog -Root $root
+        $log = @(Get-InteractiveLog -Root $root)
         $log.Count | Should -Be 3
         $log[0] | Should -BeLike "*--unlocked --sender $($Deployer)|*"
         Should -Invoke Invoke-PocNative -ModuleName MainnetDeploy -Times 1 -Exactly -ParameterFilter { $Arguments[0] -eq 'rpc' -and $Arguments[1] -eq 'anvil_setBalance' }
