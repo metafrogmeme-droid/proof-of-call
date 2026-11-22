@@ -1,8 +1,8 @@
 # Deploying ProofOfCall (QIE testnet)
 
 Status: **live on QIE testnet (chain 1983) since 1 Nov 2026**, see [Live testnet deployment](#live-testnet-deployment-chain-1983)
-and `deployments/qie-testnet-1983.json`. Mainnet (chain 1990) is **not** deployed; it is the owner's own step in
-Q11 and is refused by default.
+and `deployments/qie-testnet-1983.json`. Mainnet (chain 1990) is **not** deployed; it is the owner's own step and is refused by default. The mainnet runbook
+(Windows PowerShell) is [`docs/MAINNET.md`](MAINNET.md).
 
 ## Live testnet deployment (chain 1983)
 
@@ -169,4 +169,5 @@ gitignored. Do not share them blindly and never commit them.
 ## Not done yet
 
 - Explorer source verification (commands above; waits for the owner's decision to publish the source).
-- Mainnet deploy and runbook (Q11): the mainnet path exists only behind the guards above and is not used.
+- Mainnet deploy: the owner's step, see [`docs/MAINNET.md`](MAINNET.md). The mainnet path exists only behind the guards
+  above and is not used from this repo's automation.

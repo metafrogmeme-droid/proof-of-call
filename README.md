@@ -13,7 +13,7 @@ Status: work in progress for QIE Mainnet Hackathon 3.0. **Testnet only. Nothing 
 | `src/ProofOfCall.sol` | Seal / reveal / expire, on-chain round proofs, HIT / MISS / FLAT / VOID, per-publisher scorecards |
 | `src/interfaces/IAggregatorV3.sol` | Our own 5-function Chainlink-style feed interface (no external package) |
 | `src/mocks/MockAggregatorV3.sol` | Testnet feed: 8 decimals, scripted rounds (QIE testnet has no oracle contracts) |
-| `script/` | Testnet deploy (`deploy.sh`, `Deploy.s.sol`), read-only post-deploy check (`Check.s.sol`), shared guards |
+| `script/` | Testnet deploy (`deploy.sh`, `Deploy.s.sol`), mainnet deploy for the owner (`deploy-mainnet.ps1`), read-only post-deploy check (`Check.s.sol`) and feed cadence probe (`FeedCadence.s.sol`), shared guards |
 | `test/` | Unit, fuzz, invariant, bytecode and deploy-script tests |
 | `packages/core/` | TypeScript library shared by the CLI and the web app: ABI, networks, commitments, round proofs, openings, read layer (events, call index, scorecards, verifiers) |
 | `packages/cli/` | Publisher CLI `poc`: seal, reveal, expire, list, share (see `docs/CLI.md`) |
@@ -23,6 +23,7 @@ Status: work in progress for QIE Mainnet Hackathon 3.0. **Testnet only. Nothing 
 | `docs/CLI.md` | Publisher CLI guide (Windows PowerShell examples) |
 | `docs/READ_LAYER.md` | How the app reads calls, scorecards and verifiers straight from the chain |
 | `docs/WEB.md` | Web app: pages, actions, wallets, security headers, local run, deploying |
+| `docs/MAINNET.md` | Owner runbook for the QIE mainnet deploy (Windows PowerShell) |
 
 ## Run
 

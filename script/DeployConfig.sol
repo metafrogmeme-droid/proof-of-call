@@ -10,6 +10,10 @@ library DeployConfig {
     /// @dev QIE mainnet, same page; eth_chainId 0x7c6.
     uint256 internal constant QIE_MAINNET = 1990;
 
+    /// @dev Official QIE Oracle feeds used by the hackathon deployment (BTC / USD, ETH / USD), see isQieMainnetFeed.
+    address internal constant QIE_MAINNET_BTC_USD = 0x9E596d809a20A272c788726f592c0d1629755440;
+    address internal constant QIE_MAINNET_ETH_USD = 0x4bb7012Fbc79fE4Ae9B664228977b442b385500d;
+
     uint256 internal constant MAX_MOCKS = 8;
     uint8 internal constant FEED_DECIMALS = 8;
 
@@ -25,6 +29,7 @@ library DeployConfig {
         bool mainnetGo; // POC_MAINNET_GO == "yes"
         bool inCi; // CI is set to anything
         bool envKey; // DEPLOYER_PRIVATE_KEY was used (testnet only)
+        bool buildOverride; // a FOUNDRY_*/DAPP_* variable that changes the build or the sender was set
         address owner; // POC_OWNER
         address expectedDeployer; // POC_EXPECTED_DEPLOYER, optional (0 = not checked)
         uint32 maxGap; // POC_MAX_GAP (seconds)
@@ -36,6 +41,7 @@ library DeployConfig {
     /// @notice Reverts unless `chainId` is QIE testnet, or QIE mainnet with every mainnet guard passed.
     function checkChain(uint256 chainId, Config memory c) internal pure {
         require(c.expectedChainId == chainId, "DEPLOY: chain id mismatch (POC_EXPECTED_CHAIN_ID vs RPC)");
+        require(!c.buildOverride, "DEPLOY: FOUNDRY_*/DAPP_* override set; unset it so foundry.toml decides the build");
         if (chainId == QIE_TESTNET) return;
         if (chainId == QIE_MAINNET) {
             require(c.mainnetGo, "DEPLOY: mainnet refused (needs POC_MAINNET_GO=yes)");
@@ -68,13 +74,36 @@ library DeployConfig {
                     require(c.feeds[i] != c.feeds[j], "DEPLOY: duplicate feed");
                 }
             }
+            require(c.expectedDeployer != address(0), "DEPLOY: mainnet needs POC_EXPECTED_DEPLOYER");
+        }
+    }
+
+    /// @notice Reverts if `runtime` contains an opcode that a `paris` build never emits: PUSH0 (Shanghai) means the
+    ///         build drifted from foundry.toml, and the Cancun opcodes (TLOAD, TSTORE, MCOPY, BLOBHASH, BLOBBASEFEE)
+    ///         are not supported by QIE (opcode probe, docs/DEPLOY.md). The CBOR metadata at the end is skipped.
+    function checkBuild(bytes memory runtime) internal pure {
+        uint256 end = runtime.length;
+        require(end > 2, "DEPLOY: empty runtime code");
+        uint256 metaLen = (uint256(uint8(runtime[end - 2])) << 8) | uint256(uint8(runtime[end - 1]));
+        require(metaLen + 2 < end, "DEPLOY: runtime code has no CBOR metadata");
+        end -= metaLen + 2;
+        for (uint256 i = 0; i < end; ++i) {
+            uint8 op = uint8(runtime[i]);
+            if (op >= 0x60 && op <= 0x7f) {
+                i += op - 0x5f; // skip PUSH1..PUSH32 immediates
+                continue;
+            }
+            require(op != 0x5f, "DEPLOY: PUSH0 in bytecode; build is not evm_version paris");
+            require(op != 0x5c && op != 0x5d, "DEPLOY: TLOAD/TSTORE in bytecode (Cancun; not on QIE)");
+            require(op != 0x5e, "DEPLOY: MCOPY in bytecode (Cancun; not on QIE)");
+            require(op != 0x49 && op != 0x4a, "DEPLOY: BLOBHASH/BLOBBASEFEE in bytecode (Cancun; not on QIE)");
         }
     }
 
     /// @notice The official QIE Oracle feeds on QIE mainnet (docs.qie.digital, "Table of Assets -> Contract Mapping").
     function isQieMainnetFeed(address feed) internal pure returns (bool) {
-        return feed == 0x9E596d809a20A272c788726f592c0d1629755440 // BTC
-            || feed == 0x4bb7012Fbc79fE4Ae9B664228977b442b385500d // ETH
+        return feed == QIE_MAINNET_BTC_USD // BTC
+            || feed == QIE_MAINNET_ETH_USD // ETH
             || feed == 0x804582B1f8Fea73919e7c737115009f668f97528 // XRP
             || feed == 0xe86999c8e6C8eeF71bebd35286bCa674E0AD7b21 // SOL
             || feed == 0x3Bc617cF3A4Bb77003e4c556B87b13D556903D17 // QIE

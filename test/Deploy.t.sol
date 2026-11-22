@@ -22,6 +22,10 @@ contract ConfigHarness {
     function isQieMainnetFeed(address f) external pure returns (bool) {
         return DeployConfig.isQieMainnetFeed(f);
     }
+
+    function checkBuild(bytes memory runtime) external pure {
+        DeployConfig.checkBuild(runtime);
+    }
 }
 
 abstract contract DeployTestBase is Test {
@@ -72,6 +76,14 @@ abstract contract DeployTestBase is Test {
         c.maxGap = 6 hours;
         c.flatBandBps = 10;
         c.feeds = _officialFeeds();
+        c.expectedDeployer = address(0xDE9);
+    }
+
+    /// @dev The two feeds the hackathon mainnet deployment allowlists.
+    function _btcEth() internal pure returns (address[] memory f) {
+        f = new address[](2);
+        f[0] = DeployConfig.QIE_MAINNET_BTC_USD;
+        f[1] = DeployConfig.QIE_MAINNET_ETH_USD;
     }
 }
 
@@ -230,6 +242,72 @@ contract DeployConfigTest is DeployTestBase {
         }
         assertEq(h.isQieMainnetFeed(f), listed);
     }
+
+    function test_chain_revert_buildOverride() public {
+        DeployConfig.Config memory c = _testnetCfg();
+        c.buildOverride = true;
+        vm.expectRevert("DEPLOY: FOUNDRY_*/DAPP_* override set; unset it so foundry.toml decides the build");
+        h.checkChain(TESTNET, c);
+        c = _mainnetCfg();
+        c.buildOverride = true;
+        vm.expectRevert("DEPLOY: FOUNDRY_*/DAPP_* override set; unset it so foundry.toml decides the build");
+        h.checkChain(MAINNET, c);
+    }
+
+    function test_params_revert_mainnetNoExpectedDeployer() public {
+        DeployConfig.Config memory c = _mainnetCfg();
+        c.expectedDeployer = address(0);
+        vm.expectRevert("DEPLOY: mainnet needs POC_EXPECTED_DEPLOYER");
+        h.checkParams(MAINNET, c);
+    }
+
+    function test_params_mainnetBtcEthOnly() public view {
+        DeployConfig.Config memory c = _mainnetCfg();
+        c.feeds = _btcEth();
+        h.checkParams(MAINNET, c);
+        assertTrue(h.isQieMainnetFeed(DeployConfig.QIE_MAINNET_BTC_USD));
+        assertTrue(h.isQieMainnetFeed(DeployConfig.QIE_MAINNET_ETH_USD));
+    }
+
+    function test_checkBuild_acceptsTheParisBuild() public view {
+        h.checkBuild(type(ProofOfCall).runtimeCode);
+    }
+
+    function test_checkBuild_skipsPushDataAndMetadata() public view {
+        // PUSH1 0x5f, PUSH2 0x5e5d, STOP; then 2 metadata bytes holding Cancun opcode values, then the length 0x0002.
+        h.checkBuild(hex"605f615e5d00" hex"5e5f" hex"0002");
+    }
+
+    function test_checkBuild_revert_push0() public {
+        vm.expectRevert("DEPLOY: PUSH0 in bytecode; build is not evm_version paris");
+        h.checkBuild(hex"5f00" hex"aabb" hex"0002");
+    }
+
+    function test_checkBuild_revert_transientStorage() public {
+        vm.expectRevert("DEPLOY: TLOAD/TSTORE in bytecode (Cancun; not on QIE)");
+        h.checkBuild(hex"60015c00" hex"aabb" hex"0002");
+        vm.expectRevert("DEPLOY: TLOAD/TSTORE in bytecode (Cancun; not on QIE)");
+        h.checkBuild(hex"600160015d00" hex"aabb" hex"0002");
+    }
+
+    function test_checkBuild_revert_mcopy() public {
+        vm.expectRevert("DEPLOY: MCOPY in bytecode (Cancun; not on QIE)");
+        h.checkBuild(hex"5e" hex"aabb" hex"0002");
+    }
+
+    function test_checkBuild_revert_blobOpcodes() public {
+        vm.expectRevert("DEPLOY: BLOBHASH/BLOBBASEFEE in bytecode (Cancun; not on QIE)");
+        h.checkBuild(hex"49" hex"aabb" hex"0002");
+        vm.expectRevert("DEPLOY: BLOBHASH/BLOBBASEFEE in bytecode (Cancun; not on QIE)");
+        h.checkBuild(hex"4a" hex"aabb" hex"0002");
+    }
+
+    function test_checkBuild_revert_malformed() public {
+        vm.expectRevert("DEPLOY: empty runtime code");
+        h.checkBuild(hex"0002");
+        vm.expectRevert("DEPLOY: runtime code has no CBOR metadata");
+        h.checkBuild(hex"00ffff");
+    }
 }
 
 contract DeployScriptTest is DeployTestBase {
@@ -285,9 +363,63 @@ contract DeployScriptTest is DeployTestBase {
     function test_deploy_revert_mainnetFeedsWithoutCode() public {
         // Local EVM has no code at the QIE Oracle addresses: refuse before any broadcast.
         vm.chainId(MAINNET);
+        DeployConfig.Config memory c = _mainnetCfg();
+        c.expectedDeployer = deployer;
         vm.prank(deployer);
         vm.expectRevert("DEPLOY: feed has no code on this chain");
-        script.deploy(_mainnetCfg(), 0);
+        script.deploy(c, 0);
+    }
+
+    function test_deploy_revert_mainnetBuildOverride() public {
+        vm.chainId(MAINNET);
+        DeployConfig.Config memory c = _mainnetCfg();
+        c.expectedDeployer = deployer;
+        c.buildOverride = true;
+        vm.prank(deployer);
+        vm.expectRevert("DEPLOY: FOUNDRY_*/DAPP_* override set; unset it so foundry.toml decides the build");
+        script.deploy(c, 0);
+    }
+
+    function test_deploy_revert_mainnetWrongSigner() public {
+        vm.chainId(MAINNET);
+        DeployConfig.Config memory c = _mainnetCfg();
+        c.expectedDeployer = makeAddr("someone-else");
+        vm.prank(deployer);
+        vm.expectRevert("DEPLOY: signer is not POC_EXPECTED_DEPLOYER");
+        script.deploy(c, 0);
+    }
+
+    /// @dev Offline mainnet dry run: chain id 1990, feed code etched at the official QIE Oracle addresses
+    ///      (decimals 8), keystore-style signer (no env key), BTC / USD + ETH / USD only. Exercises every
+    ///      mainnet guard, the deployment itself and the read-back, without any network.
+    function test_deploy_mainnet_etchedFeeds_deploysAndReadsBack() public {
+        address[] memory feeds = _btcEth();
+        for (uint256 i = 0; i < feeds.length; ++i) {
+            vm.etch(feeds[i], address(new MockAggregatorV3("feed")).code);
+        }
+        vm.chainId(MAINNET);
+        DeployConfig.Config memory c = _mainnetCfg();
+        c.feeds = feeds;
+        // No prank (broadcasting refuses it): the test contract is the caller, like --account/--ledger in a real run.
+        c.expectedDeployer = address(this);
+        c.owner = owner;
+
+        (ProofOfCall poc, MockAggregatorV3[] memory mocks) = script.deploy(c, 0);
+
+        assertEq(mocks.length, 0, "no mock on mainnet");
+        assertEq(poc.owner(), owner);
+        assertEq(poc.pendingOwner(), address(0));
+        assertEq(poc.defaultMaxGap(), 6 hours);
+        assertEq(poc.defaultFlatBandBps(), 10);
+        for (uint256 i = 0; i < feeds.length; ++i) {
+            assertTrue(poc.isFeedAllowedAt(feeds[i], block.timestamp));
+        }
+        checker.check(
+            MAINNET,
+            PostDeployCheck.Expect({
+                poc: address(poc), owner: owner, maxGap: 6 hours, flatBandBps: 10, feeds: feeds, mockAdmin: address(0)
+            })
+        );
     }
 
     function test_deploy_revert_wrongDeployer() public {
@@ -446,6 +578,14 @@ contract DeployEnvTest is DeployTestBase {
         vm.setEnv("POC_MAINNET_GO", "yes");
         (c,) = script.loadConfig();
         assertTrue(c.mainnetGo);
+
+        assertFalse(c.buildOverride);
+        vm.setEnv("FOUNDRY_EVM_VERSION", "cancun");
+        (c,) = script.loadConfig();
+        assertTrue(c.buildOverride);
+        vm.setEnv("FOUNDRY_EVM_VERSION", "");
+        (c,) = script.loadConfig();
+        assertFalse(c.buildOverride);
 
         vm.setEnv("POC_MAX_GAP", "4294967296");
         vm.expectRevert("DEPLOY: POC_MAX_GAP out of range");

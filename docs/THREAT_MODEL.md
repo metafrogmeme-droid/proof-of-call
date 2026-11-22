@@ -44,7 +44,7 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | T18 | **Value stuck or stolen** | No payable functions, no `receive`/`fallback`, no `CALL` opcode in the runtime | `test_rejectsPlainValue`, `test_seal_revert_withValue`, `test/Bytecode.t.sol`, invariant `holdsNoValue` |
 | T19 | **Timestamp manipulation** by block producers | A few seconds of drift can move a boundary by one round at most; horizons are at least 5 minutes and the round proof still uses real oracle rounds | n/a |
 | T20 | **Ownership takeover** via a mistyped address | Two-step transfer; only the pending owner can accept; zero cancels | `test_twoStepOwnership`, `test_transferOwnership_cancel` |
-| T21 | **Mock allowlisted on mainnet** (anyone could script prices) | Mock writes are deployer-only; `script/DeployConfig.sol` never deploys a mock on chain 1990 and only accepts the 7 official QIE Oracle feeds there; `Check.s.sol` fails on a non-QIE feed on mainnet; mainnet deploy is the owner's own action | `test_params_revert_mainnetMock`, `..._mainnetNonQieFeed`, `testFuzz_isQieMainnetFeed_onlyTheSeven`, `test_check_revert_mockOnMainnet` |
+| T21 | **Mock allowlisted on mainnet** (anyone could script prices) | Mock writes are deployer-only; `script/DeployConfig.sol` never deploys a mock on chain 1990 and only accepts the 7 official QIE Oracle feeds there; `Check.s.sol` fails on a non-QIE feed on mainnet; mainnet deploy is the owner's own action (`docs/MAINNET.md`) | `test_params_revert_mainnetMock`, `..._mainnetNonQieFeed`, `testFuzz_isQieMainnetFeed_onlyTheSeven`, `test_check_revert_mockOnMainnet` |
 
 ## Deploy tooling (Q2)
 
@@ -58,6 +58,16 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | D6 | **Accidental broadcast** | Simulation always first; broadcast needs `--broadcast` and typing the chain id | `deploy.sh` |
 | D7 | **Owner = deployer hot key** | `POC_OWNER` is separate from the deployer; the deployer keeps only the mock admin role (testnet) | `test_deploy_testnet_deploysAndReadsBack` |
 
+## Mainnet deploy tooling (Q4)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| D8 | **Guards bypassed by running forge by hand** (e.g. from PowerShell without `deploy.sh`) with `FOUNDRY_EVM_VERSION=cancun` or similar | `Deploy.s.sol` itself refuses build-changing `FOUNDRY_*`/`DAPP_*` variables and walks the ProofOfCall runtime for PUSH0 and Cancun opcodes before any broadcast | `test_chain_revert_buildOverride`, `test_checkBuild_*`, `test_loadConfig_readsEnv` |
+| D9 | **Wrong or mistyped mainnet feed address** | Addresses cited to the QIE docs and checked on chain (code, 8 decimals, description, recent round); `isQieMainnetFeed` allowlist; config JSON cross-checked against the Solidity constants; the ps1 refuses unverified configs | `test_params_mainnetBtcEthOnly`, Pester `committed config lists exactly ...`, `refuses unverified feeds` |
+| D10 | **Testnet settings or secrets leak into the mainnet run** (forge auto-loads `.env`; `ETH_PASSWORD` would unlock a keystore silently) | `deploy-mainnet.ps1` refuses to run while `.env` exists or key/`ETH_PASSWORD`/`CAST_PASSWORD` variables are set, and sets every `POC_*` value itself, process scope only, removed afterwards | Pester `refuses a .env file`, `cleans the environment` |
+| D11 | **A stale broadcast file is recorded as the mainnet deploy** (e.g. after a rehearsal) | The record is only written from a broadcast file newer than this run, after `cast code` finds the contract on the target RPC and `Check.s.sol` passes; an existing record is never overwritten and blocks a second deploy | Pester `Get-PocBroadcastRun`, `refuses to deploy twice` |
+| D12 | **`maxGap` too small for the real feed cadence** (calls void) or too large (stale prices) | `script/FeedCadence.s.sol` measures the last 96 rounds and recommends a value; it also checks the round-proof assumptions (plain ids, monotonic `updatedAt`, `answeredInRound`) | `test/FeedCadence.t.sol` |
+| D13 | **Deployer is the owner's main wallet** | The runbook uses a fresh gas-only keystore (or Ledger); `POC_OWNER` is the MetaMask address; `POC_EXPECTED_DEPLOYER` is mandatory on mainnet | `test_params_revert_mainnetNoExpectedDeployer`, `test_deploy_revert_mainnetWrongSigner` |
 ## Publisher CLI (Q5)
 
 | # | Threat | Mitigation | Test |
@@ -96,4 +106,4 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 - External audit and static analysis (Q10). Publisher CLI: `docs/CLI.md` (Q5); read layer: `docs/READ_LAYER.md` (Q6); web app: `docs/WEB.md` (Q7).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
 - QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
-- Explorer source verification (commands in `docs/DEPLOY.md`) and the mainnet runbook (Q11).
+- Explorer source verification (commands in `docs/DEPLOY.md`). The mainnet runbook is `docs/MAINNET.md` (Q4).

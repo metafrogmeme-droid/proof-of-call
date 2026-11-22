@@ -37,6 +37,36 @@ contract Deploy is Script {
         c.flatBandBps = uint16(band);
         c.mockDescriptions = vm.envOr("POC_MOCK_FEEDS", ",", new string[](0));
         c.feeds = vm.envOr("POC_FEEDS", ",", new address[](0));
+        c.buildOverride = buildOverrideSet();
+    }
+
+    /// @notice True if any Foundry/dapptools variable that changes the compiled bytecode or the sender is set.
+    ///         script/deploy.sh and script/deploy-mainnet.ps1 refuse every FOUNDRY_*/DAPP_* variable; this list is
+    ///         the backstop when forge is run by hand. FOUNDRY_PROFILE is not listed: foundry.toml's profiles only
+    ///         change fuzz and invariant settings.
+    function buildOverrideSet() public view returns (bool) {
+        string[16] memory names = [
+            "FOUNDRY_EVM_VERSION",
+            "FOUNDRY_SOLC",
+            "FOUNDRY_SOLC_VERSION",
+            "FOUNDRY_OPTIMIZER",
+            "FOUNDRY_OPTIMIZER_RUNS",
+            "FOUNDRY_VIA_IR",
+            "FOUNDRY_BYTECODE_HASH",
+            "FOUNDRY_CBOR_METADATA",
+            "FOUNDRY_SRC",
+            "FOUNDRY_LIBS",
+            "FOUNDRY_REMAPPINGS",
+            "FOUNDRY_LIBRARIES",
+            "FOUNDRY_SENDER",
+            "DAPP_SOLC_VERSION",
+            "DAPP_BUILD_OPTIMIZE",
+            "DAPP_BUILD_OPTIMIZE_RUNS"
+        ];
+        for (uint256 i = 0; i < names.length; ++i) {
+            if (bytes(vm.envOr(names[i], string(""))).length != 0) return true;
+        }
+        return false;
     }
 
     /// @notice All guards, then the deployment, then a read-back of what was deployed.
@@ -60,6 +90,7 @@ contract Deploy is Script {
                 require(c.feeds[i].code.length != 0, "DEPLOY: feed has no code on this chain");
             }
         }
+        DeployConfig.checkBuild(type(ProofOfCall).runtimeCode);
 
         if (pk != 0) vm.startBroadcast(pk);
         else vm.startBroadcast();
