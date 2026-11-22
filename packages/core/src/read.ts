@@ -263,7 +263,8 @@ export async function syncEvents(
   if (!deployment) throw new Error(`ProofOfCall is not deployed on ${network.name}`);
   const key = `poc:events:${network.chainId}:${deployment.address.toLowerCase()}`;
   const reorgDepth = opts.reorgDepth ?? 15n;
-  const head = await client.getBlockNumber();
+  // cacheTime 0: viem caches the block number for a few seconds, which would hide the newest events after a tx.
+  const head = await client.getBlockNumber({ cacheTime: 0 });
   const stable = head - reorgDepth; // older blocks can no longer be reorganised away
 
   let cached: PocEvent[] = [];

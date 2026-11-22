@@ -33,48 +33,53 @@ export interface Anvil {
   warp(seconds: number): Promise<void>;
 }
 
+/** Starts anvil on a port the OS picks (--port 0), so parallel test files can never share a chain. */
 export async function startAnvil(): Promise<Anvil> {
   const bin = process.env.ANVIL_BIN ?? 'anvil';
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const port = 20_000 + Math.floor(Math.random() * 20_000);
-    const child: ChildProcess = spawn(bin, ['--port', String(port), '--chain-id', '31337', '--silent'], {
-      stdio: 'ignore',
+  const child: ChildProcess = spawn(bin, ['--port', '0', '--chain-id', '31337'], {
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
+  const port = await new Promise<number>((resolve, reject) => {
+    let out = '';
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error('anvil did not start within 20 s'));
+    }, 20_000);
+    child.once('error', (err) => {
+      clearTimeout(timer);
+      reject(new Error(`could not start anvil (${bin}): ${err.message}. Install Foundry or set ANVIL_BIN.`));
     });
-    const failed = new Promise<never>((_, reject) => {
-      child.once('error', (err) => {
-        reject(new Error(`could not start anvil (${bin}): ${err.message}. Install Foundry or set ANVIL_BIN.`));
-      });
+    child.once('exit', (code) => {
+      clearTimeout(timer);
+      reject(new Error(`anvil exited with code ${code}`));
     });
-    const rpcUrl = `http://127.0.0.1:${port}`;
-    const client = createPublicClient({ transport: http(rpcUrl, { retryCount: 0 }) });
-    const ready = (async () => {
-      for (let i = 0; i < 100; i++) {
-        try {
-          await client.getChainId();
-          return true;
-        } catch {
-          await new Promise((r) => setTimeout(r, 100));
-        }
+    child.stdout?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      out += chunk;
+      const m = /Listening on 127\.0\.0\.1:(\d+)/.exec(out);
+      if (m?.[1]) {
+        clearTimeout(timer);
+        child.stdout?.removeAllListeners('data');
+        child.stdout?.resume(); // keep draining anvil's log
+        resolve(Number(m[1]));
       }
-      return false;
-    })();
-    if (await Promise.race([ready, failed])) {
-      const test = createTestClient({ mode: 'anvil', transport: http(rpcUrl) });
-      const accounts = await createWalletClient({ transport: http(rpcUrl) }).getAddresses();
-      return {
-        rpcUrl,
-        accounts,
-        client,
-        stop: () => child.kill(),
-        warp: async (seconds) => {
-          await test.increaseTime({ seconds });
-          await test.mine({ blocks: 1 });
-        },
-      };
-    }
-    child.kill();
-  }
-  throw new Error('anvil did not start');
+    });
+  });
+  child.removeAllListeners('exit');
+  const rpcUrl = `http://127.0.0.1:${port}`;
+  const client = createPublicClient({ transport: http(rpcUrl, { retryCount: 0 }) });
+  const test = createTestClient({ mode: 'anvil', transport: http(rpcUrl) });
+  const accounts = await createWalletClient({ transport: http(rpcUrl) }).getAddresses();
+  return {
+    rpcUrl,
+    accounts,
+    client,
+    stop: () => child.kill(),
+    warp: async (seconds) => {
+      await test.increaseTime({ seconds });
+      await test.mine({ blocks: 1 });
+    },
+  };
 }
 
 export interface LocalDeployment {

@@ -10,7 +10,6 @@ import {
   memoryStore,
   readScorecard,
   resolveRevealers,
-  sameScorecard,
   scorecardOf,
   serializeEvents,
   syncEvents,
@@ -262,9 +261,7 @@ describe('publisher CLI against a local chain (anvil)', () => {
     expect(index.anomalies).toEqual([]);
     const revealers = new Map<string, Address>();
     await resolveRevealers(ctx.client, index, revealers);
-    expect(sameScorecard(scorecardOf(index, publisher), await readScorecard(ctx.client, dep.poc, publisher))).toBe(
-      true,
-    );
+    expect(scorecardOf(index, publisher)).toEqual(await readScorecard(ctx.client, dep.poc, publisher));
     const now = (await ctx.client.getBlock()).timestamp;
     const status = Object.fromEntries([...index.calls.values()].map((c) => [c.label ?? c.callId, callStatus(c, now)]));
     expect(status).toEqual({
