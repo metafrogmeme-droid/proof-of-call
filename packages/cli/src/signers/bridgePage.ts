@@ -8,7 +8,7 @@ export interface AddChainParams {
   blockExplorerUrls?: string[];
 }
 
-/** JSON that is safe inside a <script type="application/json"> element. */
+/** JSON that can sit inside a <script type="application/json"> element without closing it. */
 function scriptJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 }

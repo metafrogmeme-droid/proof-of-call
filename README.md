@@ -15,8 +15,11 @@ Status: work in progress for QIE Mainnet Hackathon 3.0. **Testnet only. Nothing 
 | `src/mocks/MockAggregatorV3.sol` | Testnet feed: 8 decimals, scripted rounds (QIE testnet has no oracle contracts) |
 | `script/` | Testnet deploy (`deploy.sh`, `Deploy.s.sol`), read-only post-deploy check (`Check.s.sol`), shared guards |
 | `test/` | Unit, fuzz, invariant, bytecode and deploy-script tests |
+| `packages/core/` | TypeScript library shared by the CLI and the web app: ABI, networks, commitments, round proofs, openings |
+| `packages/cli/` | Publisher CLI `poc`: seal, reveal, expire, list, share (see `docs/CLI.md`) |
 | `docs/DESIGN.md`, `docs/THREAT_MODEL.md` | How it works and what it defends against |
 | `docs/DEPLOY.md` | QIE testnet facts, EVM-level probe, how to deploy and check |
+| `docs/CLI.md` | Publisher CLI guide (Windows PowerShell examples) |
 
 ## Run
 
@@ -24,6 +27,9 @@ Status: work in progress for QIE Mainnet Hackathon 3.0. **Testnet only. Nothing 
 git submodule update --init --recursive
 forge fmt --check && forge build && forge test
 forge coverage --report summary
+
+# TypeScript workspace (Node 22): needs the forge build above for the ABI check and the anvil tests
+npm ci && npm run typecheck && npm run lint && npm run build && npm test
 ```
 
 ## Origin

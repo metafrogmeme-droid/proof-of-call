@@ -27,7 +27,7 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | T1 | **Front-running a seal**: an attacker copies a pending commitment into their own namespace | The commitment binds `publisher`; a copied commitment can never be opened by the copier and expires as a miss for them | `test_reveal_revert_openingForOtherPublisher` |
 | T2 | **Front-running a reveal**: an attacker sees the opening in the mempool and reveals first | Harmless: the outcome is fully determined by the opening and the proven rounds, and is credited to the publisher | `test_reveal_hitUp` (third-party reveal) |
 | T3 | **Cross-chain / cross-deployment replay** of commitments | `chainid` and `address(this)` are in the commitment | `test_computeCommitment_binds*` |
-| T4 | **Salt leak or weak salt** reveals the call early | Salt is a 32-byte secret held by the publisher (Q5 CLI keeps it in a local encrypted store, never logged). Without a salt only 2 x (number of feeds) openings exist, so a weak salt is brute-forceable: the CLI must use 32 random bytes | n/a (off-chain, Q5) |
+| T4 | **Salt leak or weak salt** reveals the call early | Salt is 32 bytes from the platform CSPRNG (`randomSalt`), kept only in the publisher's encrypted vault and never logged; `share`/`export` refuse before the horizon. Without a salt only 2 x (number of feeds) openings exist, so a weak salt would be brute-forceable | `randomSalt` test, vault tests, lifecycle `refuses to reveal, share or export before the horizon` |
 | T5 | **Cherry-picking**: reveal winners, hide losers | Anyone can `expire` an unrevealed call after `revealBy`; it counts as a miss | `ProofOfCallExpireTest`, fuzz timing |
 | T6 | **Flipping a call** (reveal DOWN for a sealed UP) | Direction is in the commitment | `test_reveal_revert_wrongDirection`, fuzz binding |
 | T7 | **Look-back or convenient pricing**: pass an older or later round | Round proofs require the first round at or after each target (`r` and `r - 1` read on chain) | `test_reveal_revert_entryRoundBeforeCommit`, `..._entryNotFirstAfterSeal`, `..._exitNotFirstAfterHorizon`, fuzz `onlyFirstRoundAccepted` |
@@ -58,10 +58,21 @@ earlier HashKey Seal entry was a design reference only and no code from it is us
 | D6 | **Accidental broadcast** | Simulation always first; broadcast needs `--broadcast` and typing the chain id | `deploy.sh` |
 | D7 | **Owner = deployer hot key** | `POC_OWNER` is separate from the deployer; the deployer keeps only the mock admin role (testnet) | `test_deploy_testnet_deploysAndReadsBack` |
 
+## Publisher CLI (Q5)
+
+| # | Threat | Mitigation | Test |
+|---|---|---|---|
+| C1 | **Salt lost** (crash, deleted file): the call can never be revealed and expires as a MISS | The vault entry is written before the seal is sent; atomic replace with a `.bak` copy; lock file against concurrent writers; `list` finds seals that were never mined | `vault.test.ts`, lifecycle `spots a seal that was never mined` |
+| C2 | **Vault file stolen or edited** | scrypt (N = 2^17) + AES-256-GCM, header authenticated as AAD, entries validated on load; file mode 0600; must live outside the repository | `rejects a wrong password and any tampering`, `keeps the vault outside the repository` |
+| C3 | **Seal sent from the wrong account** (commitment bound to another publisher, can never be opened) | `--from` is required; the signing page refuses other accounts; cast signer compares the keystore/Ledger address first; mined `from` re-checked | `refuses to send from another account` (Chromium e2e), `sends nothing when the wallet is another address` |
+| C4 | **A website drives the local signing page** (CSRF, DNS rebinding) | 127.0.0.1 only, 256-bit random path, exact `Host` and `Origin` checks, JSON only, one answer, timeout, nonce CSP, no external resources | `browser.test.ts` |
+| C5 | **Wallet or RPC substitutes the transaction** | After mining, sender, contract, calldata, status and the `Sealed`/`Revealed` event are compared with what was prepared | `sendAndConfirm` in every lifecycle step |
+| C6 | **Accidental mainnet transaction** | Chain id of the RPC checked; mainnet always asks for confirmation and refuses `--yes`; mainnet seals need verified feed addresses | `args.test.ts` |
+| C7 | **Keys leak through the tool** | The CLI never sees a key: browser wallet, Foundry keystore (cast prompts) or Ledger; the unlocked signer only works on chain 31337 | `cast.test.ts`, `UnlockedSigner` chain check |
+
 ## Out of scope for Q1 / open items
 
-- Publisher CLI and salt storage (Q5), indexer (Q6),
-  web app (Q7), external audit and static analysis (Q10).
+- Indexer (Q6), web app (Q7), external audit and static analysis (Q10). The publisher CLI is `docs/CLI.md` (Q5).
 - Phase-encoded round ids across a phase boundary (see DESIGN known limitations).
 - QIE's EVM level is undocumented; the Q2 probe found Shanghai level on testnet and mainnet (see `docs/DEPLOY.md`). We keep `paris`.
 - Explorer source verification (commands in `docs/DEPLOY.md`) and the mainnet runbook (Q11).

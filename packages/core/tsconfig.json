@@ -5,7 +5,8 @@
     "rootDir": "src",
     "outDir": "dist",
     "lib": ["ES2023", "DOM"],
-    "types": []
+    "types": [],
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "include": ["src/**/*.ts"]
 }
