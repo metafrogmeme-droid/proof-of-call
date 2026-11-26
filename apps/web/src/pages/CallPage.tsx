@@ -18,9 +18,19 @@ import {
 } from '@proof-of-call/core';
 import { encodeFunctionData, type Address, type Hex, type PublicClient } from 'viem';
 import { useEffect, useState, type ChangeEvent, type ReactNode } from 'react';
-import { AddressLink, Card, ErrorBox, Loading, PublisherLink, StatusBadge, TxLink } from '../components/common';
+import {
+  AddressLink,
+  Card,
+  ErrorBox,
+  Hash,
+  Loading,
+  PublisherLink,
+  StatusBadge,
+  Terminal,
+  TxLink,
+} from '../components/common';
 import type { NetworkData } from '../data';
-import { movePercent, price, relative, sameAddress, utc } from '../format';
+import { movePercent, price, relative, sameAddress, shortAddress, utc } from '../format';
 import { verifyRevealed, type Check } from '../verify';
 import type { WalletState } from '../wallet';
 
@@ -49,12 +59,15 @@ export function CallPage({
     );
   }
   const status = callStatus(call, data.now);
+  const target = targetOf(call);
+  const closed = !!call.revealed || !!call.expired || data.now > call.sealed.revealBy;
   return (
     <>
       <Card
         title={
           <>
-            Call {call.label ?? <code>{call.callId}</code>} <StatusBadge status={status} />
+            Call {call.label ?? <code title={call.callId}>{shortAddress(call.callId)}</code>}{' '}
+            <StatusBadge status={status} />
           </>
         }
       >
@@ -65,33 +78,41 @@ export function CallPage({
           </dd>
           <dt>Call id</dt>
           <dd>
-            <code className="wrap">{call.callId}</code>
+            <Hash value={call.callId} label="Copy call id" />
           </dd>
           <dt>Commitment</dt>
           <dd>
-            <code className="wrap">{call.sealed.commitment}</code>
-          </dd>
-          <dt>Sealed</dt>
-          <dd>
-            {utc(call.sealed.sealedAt)} ({relative(call.sealed.sealedAt, data.now)}), block{' '}
-            {call.sealed.block.toString()}, tx <TxLink network={network} hash={call.sealed.tx} />
-          </dd>
-          <dt>Target</dt>
-          <dd>
-            {utc(targetOf(call))} ({relative(targetOf(call), data.now)}), horizon{' '}
-            {(Number(call.sealed.horizon) / 3600).toString()} h
-          </dd>
-          <dt>Reveal by</dt>
-          <dd>
-            {utc(call.sealed.revealBy)} ({relative(call.sealed.revealBy, data.now)})
+            <Hash value={call.sealed.commitment} label="Copy commitment" />
           </dd>
           <dt>Scoring</dt>
           <dd>
             max gap {call.sealed.maxGap / 3600} h, flat band {call.sealed.flatBandBps / 100} % (fixed at seal time)
           </dd>
         </dl>
+        <ol className="timeline">
+          <li className="done">
+            <span className="tl-label">Sealed</span>
+            <span className="tl-time">{utc(call.sealed.sealedAt)}</span>
+            <span className="tl-meta">
+              {relative(call.sealed.sealedAt, data.now)} · block {call.sealed.block.toString()} · tx{' '}
+              <TxLink network={network} hash={call.sealed.tx} />
+            </span>
+          </li>
+          <li className={data.now >= target ? 'done' : undefined}>
+            <span className="tl-label">Target</span>
+            <span className="tl-time">{utc(target)}</span>
+            <span className="tl-meta">
+              {relative(target, data.now)} · {(Number(call.sealed.horizon) / 3600).toString()} h horizon
+            </span>
+          </li>
+          <li className={closed ? 'done' : undefined}>
+            <span className="tl-label">Reveal by</span>
+            <span className="tl-time">{utc(call.sealed.revealBy)}</span>
+            <span className="tl-meta">{relative(call.sealed.revealBy, data.now)}</span>
+          </li>
+        </ol>
         {!call.revealed && !call.expired ? (
-          <p className="muted">
+          <p className="muted hidden-note">
             The asset and the direction of this call are hidden: only the commitment above is on chain until it is
             revealed.
           </p>
@@ -145,39 +166,65 @@ function RevealedCard({ network, call, client }: { network: NetworkInfo; call: C
   if (!r) return null;
   const feed = describeFeed(network, r.feed);
   const outcome = outcomeName(r.outcome);
+  const tone = outcome.toLowerCase();
+  const cast = [
+    `cast call ${network.proofOfCall?.address ?? '<contract>'} \\`,
+    `  "getCall(address,bytes32)" \\`,
+    `  ${call.publisher} \\`,
+    `  ${call.callId} \\`,
+    `  --rpc-url ${network.rpcUrls[0] ?? '<rpc url>'}`,
+  ].join('\n');
   return (
     <Card title="Revealed">
+      <dl className="facts facts-hero">
+        <div className="tile">
+          <dt>Call</dt>
+          <dd>
+            <strong>
+              {feed.asset ?? feed.pair} {directionName(r.direction)}
+            </strong>
+            {feed.known ? null : <span className="error">feed not known for {network.name}</span>}
+          </dd>
+        </div>
+        <div className={`tile tile-${tone}`}>
+          <dt>Outcome</dt>
+          <dd>
+            <strong className={`outcome outcome-${tone}`}>{outcome}</strong>
+            {outcome === 'VOID' ? (
+              <span className="tile-note">
+                {voidReasonName(r.voidReason)}: the feed stalled or gave bad data, so no price was guessed
+              </span>
+            ) : null}
+          </dd>
+        </div>
+        {outcome !== 'VOID' ? (
+          <div className="tile">
+            <dt>Move</dt>
+            <dd>
+              <span className="price">{movePercent(r.entryPrice, r.exitPrice)}</span>
+            </dd>
+          </div>
+        ) : null}
+      </dl>
       <dl className="facts">
-        <dt>Call</dt>
-        <dd>
-          <strong>
-            {feed.asset ?? feed.pair} {directionName(r.direction)}
-          </strong>{' '}
-          {feed.known ? null : <span className="error">feed not known for {network.name}</span>}
-        </dd>
-        <dt>Feed</dt>
-        <dd>
-          {feed.pair} <AddressLink network={network} address={r.feed} />
-        </dd>
-        <dt>Outcome</dt>
-        <dd>
-          <strong>{outcome}</strong>
-          {outcome === 'VOID' ? (
-            <> ({voidReasonName(r.voidReason)}: the feed stalled or gave bad data, so no price was guessed)</>
-          ) : null}
-        </dd>
         {outcome !== 'VOID' ? (
           <>
             <dt>Entry</dt>
             <dd>
-              {price(r.entryPrice)} (round {r.entryRound.toString()})
+              <span className="price">{price(r.entryPrice)}</span>{' '}
+              <span className="muted">round {r.entryRound.toString()}</span>
             </dd>
             <dt>Exit</dt>
             <dd>
-              {price(r.exitPrice)} (round {r.exitRound.toString()}), move {movePercent(r.entryPrice, r.exitPrice)}
+              <span className="price">{price(r.exitPrice)}</span>{' '}
+              <span className="muted">round {r.exitRound.toString()}</span>
             </dd>
           </>
         ) : null}
+        <dt>Feed</dt>
+        <dd>
+          {feed.pair} <AddressLink network={network} address={r.feed} copy="Copy feed address" />
+        </dd>
         <dt>Revealed by</dt>
         <dd>
           {r.revealer ? <AddressLink network={network} address={r.revealer} /> : 'unknown'}
@@ -190,25 +237,57 @@ function RevealedCard({ network, call, client }: { network: NetworkInfo; call: C
       <h3>Verify it yourself</h3>
       {checkError ? <ErrorBox text={checkError} /> : null}
       {checks ? (
-        <ul className="checks">
-          {checks.map((c) => (
-            <li key={c.label} className={c.ok === true ? 'ok' : c.ok === false ? 'error' : 'muted'}>
-              {c.ok === true ? '✓' : c.ok === false ? '✗' : '•'} <strong>{c.label}</strong>: {c.detail}
-            </li>
-          ))}
-        </ul>
+        <>
+          <CheckSummary checks={checks} />
+          <ul className="checks">
+            {checks.map((c) => (
+              <li key={c.label} className={c.ok === true ? 'ok' : c.ok === false ? 'error' : 'muted'}>
+                <span className="check-icon" aria-hidden="true">
+                  {c.ok === true ? '✓' : c.ok === false ? '✗' : '•'}
+                </span>
+                <strong className="check-label">
+                  {c.label}
+                  <span className="sr-only">{c.ok === true ? ': passed' : c.ok === false ? ': failed' : ': note'}</span>
+                </strong>
+                <span className="check-detail">{withHashes(c.detail)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : checkError ? null : (
         <Loading text="Re-checking the commitment and the oracle rounds in your browser…" />
       )}
-      <p className="muted">
-        Or with Foundry:{' '}
-        <code className="wrap">
-          cast call {network.proofOfCall?.address} "getCall(address,bytes32)" {call.publisher} {call.callId} --rpc-url{' '}
-          {network.rpcUrls[0]}
-        </code>
-      </p>
+      <Terminal title="Or with Foundry" command={cast} copyLabel="Copy cast command" />
     </Card>
   );
+}
+
+function CheckSummary({ checks }: { checks: Check[] }) {
+  const n = checks.length;
+  if (n === 0) return null;
+  const passed = checks.filter((c) => c.ok === true).length;
+  const failed = checks.filter((c) => c.ok === false).length;
+  if (failed > 0)
+    return (
+      <p className="check-summary error">
+        {failed} of {n} checks failed.
+      </p>
+    );
+  if (passed === n) return <p className="check-summary ok">All {n} checks passed, recomputed in your browser.</p>;
+  return (
+    <p className="check-summary muted">
+      {passed} of {n} checks passed; read the {n - passed === 1 ? 'note' : 'notes'} below.
+    </p>
+  );
+}
+
+const LONG_HEX = /(0x[0-9a-fA-F]{40,})/;
+
+/** Shows the full hashes in a check's detail truncated, with a copy button each. */
+function withHashes(detail: string): ReactNode[] {
+  return detail
+    .split(LONG_HEX)
+    .map((part, i) => (i % 2 === 1 ? <Hash key={`${i.toString()}-${part}`} value={part} label="Copy hash" /> : part));
 }
 
 function openingFromRoute(network: NetworkInfo, route: CallRoute): Opening | null {
@@ -280,6 +359,7 @@ function RevealPanel({
 }) {
   const [opening, setOpening] = useState<Opening | null>(() => openingFromRoute(network, route));
   const [fileError, setFileError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const { busy, message, error, run } = useSend(data, wallet);
   const matches = opening
     ? computeCommitment(opening) === call.sealed.commitment &&
@@ -291,6 +371,7 @@ function RevealPanel({
     const file = e.target.files?.[0];
     if (!file) return;
     setFileError(null);
+    setFileName(file.name);
     file.text().then(
       (text) => {
         try {
@@ -346,18 +427,18 @@ function RevealPanel({
 
   return (
     <Card title="Reveal this call" className="action">
-      <p>
+      <p className="callout callout-warn">
         <strong>Revealing makes this call public for good:</strong> its asset, direction and prices. The outcome is
         fixed by the oracle and credited to the publisher, whoever sends the transaction.
       </p>
       {opening ? (
         matches ? (
-          <p className="ok">
+          <p className="ok status-line">
             ✓ The opening matches the sealed commitment: {describeFeed(network, opening.feed).asset ?? opening.feed}{' '}
             {directionName(opening.direction)}.
           </p>
         ) : (
-          <p className="error">This opening does not match the sealed commitment of this call.</p>
+          <p className="error status-line">This opening does not match the sealed commitment of this call.</p>
         )
       ) : (
         <p className="muted">
@@ -365,15 +446,20 @@ function RevealPanel({
         </p>
       )}
       <label className="file">
-        Opening file (.json) <input type="file" accept="application/json,.json" onChange={onFile} />
+        <input type="file" className="sr-only" accept="application/json,.json" onChange={onFile} />
+        <span className="file-kicker kicker">Opening file (.json)</span>
+        <span className="file-button">Choose opening file</span>
+        <span className="file-name">{fileName ?? 'none loaded (from poc export)'}</span>
       </label>
       {fileError ? <ErrorBox text={fileError} /> : null}
       {matches ? (
-        <WalletGate network={network} wallet={wallet}>
-          <button type="button" disabled={busy} onClick={() => void reveal()}>
-            {busy ? 'Revealing…' : 'Reveal (public)'}
-          </button>
-        </WalletGate>
+        <div className="action-row">
+          <WalletGate network={network} wallet={wallet}>
+            <button type="button" disabled={busy} onClick={() => void reveal()}>
+              {busy ? 'Revealing…' : 'Reveal (public)'}
+            </button>
+          </WalletGate>
+        </div>
       ) : null}
       {message ? <p role="status">{message}</p> : null}
       {error ? <ErrorBox text={error} /> : null}
@@ -413,16 +499,18 @@ function ExpirePanel({
       };
     });
   return (
-    <Card title="Expire this call" className="action">
+    <Card title="Expire this call" className="action action-expire">
       <p>
         This call was not revealed by {utc(call.sealed.revealBy)}. Anyone can close it now; it counts as a{' '}
         <strong>miss</strong> for the publisher, so unrevealed calls cannot be hidden.
       </p>
-      <WalletGate network={network} wallet={wallet}>
-        <button type="button" disabled={busy} onClick={() => void expire()}>
-          {busy ? 'Expiring…' : 'Expire (counts as a miss)'}
-        </button>
-      </WalletGate>
+      <div className="action-row">
+        <WalletGate network={network} wallet={wallet}>
+          <button type="button" className="danger" disabled={busy} onClick={() => void expire()}>
+            {busy ? 'Expiring…' : 'Expire (counts as a miss)'}
+          </button>
+        </WalletGate>
+      </div>
       {message ? <p role="status">{message}</p> : null}
       {error ? <ErrorBox text={error} /> : null}
     </Card>

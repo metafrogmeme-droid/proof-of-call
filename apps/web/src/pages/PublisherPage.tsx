@@ -1,8 +1,5 @@
 import {
   callsOf,
-  callStatus,
-  describeFeed,
-  directionName,
   publisherStats,
   readScorecard,
   sameScorecard,
@@ -13,10 +10,10 @@ import {
 } from '@proof-of-call/core';
 import type { Address } from 'viem';
 import { useEffect, useState } from 'react';
-import { AddressLink, Card, ErrorBox, Loading, StatusBadge } from '../components/common';
+import { AddressLink, Card, ErrorBox, Loading } from '../components/common';
 import type { NetworkData } from '../data';
-import { percent, relative, sameAddress, utc } from '../format';
-import { callHref } from './links';
+import { percent, sameAddress } from '../format';
+import { CallLedger } from './CallLedger';
 
 export function PublisherPage({
   network,
@@ -58,8 +55,8 @@ export function PublisherPage({
   return (
     <>
       <Card title="Publisher scorecard">
-        <p>
-          <AddressLink network={network} address={publisher} label={publisher} />
+        <p className="publisher-id">
+          <AddressLink network={network} address={publisher} copy="Copy publisher address" />
         </p>
         <div className="scorecard">
           <Score label="Sealed" value={card.sealedCalls} />
@@ -73,17 +70,17 @@ export function PublisherPage({
           <Score label="Void" value={card.voids} />
           <Score label="Open" value={BigInt(stats?.open ?? 0)} />
         </div>
-        <p>
-          Hit rate <strong>{percent(stats?.hitRate ?? null)}</strong>{' '}
+        <p className="hit-rate">
+          <span className="kicker">Hit rate</span> <strong>{percent(stats?.hitRate ?? null)}</strong>{' '}
           <span className="muted">
             (hits / (hits + misses); flat and void calls are not decided; an expired call is a miss)
           </span>
         </p>
         {onchain ? (
           sameScorecard(onchain, card) ? (
-            <p className="ok">✓ Matches the contract's own scorecard() for this address.</p>
+            <p className="ok verify-line">✓ Matches the contract's own scorecard() for this address.</p>
           ) : (
-            <p className="error">
+            <p className="error verify-line">
               The events read so far do not match the contract's scorecard(); the page may still be loading new blocks.
             </p>
           )
@@ -94,40 +91,7 @@ export function PublisherPage({
         {calls.length === 0 ? (
           <p className="muted">No calls from this address on {network.name}.</p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Call</th>
-                  <th>Status</th>
-                  <th>Horizon</th>
-                  <th>Sealed</th>
-                  <th>Asset / direction</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calls.map((c) => (
-                  <tr key={c.key}>
-                    <td>
-                      <a href={callHref(network, c)}>{c.label ?? c.callId.slice(0, 10)}</a>
-                    </td>
-                    <td>
-                      <StatusBadge status={callStatus(c, now)} />
-                    </td>
-                    <td>{(Number(c.sealed.horizon) / 3600).toString()} h</td>
-                    <td title={utc(c.sealed.sealedAt)}>{relative(c.sealed.sealedAt, now)}</td>
-                    <td>
-                      {c.revealed ? (
-                        `${describeFeed(network, c.revealed.feed).asset ?? '?'} ${directionName(c.revealed.direction)}`
-                      ) : (
-                        <span className="muted">hidden until revealed</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <CallLedger network={network} calls={calls} now={now} column="horizon" />
         )}
       </Card>
 
@@ -136,11 +100,13 @@ export function PublisherPage({
           <p className="muted">
             Wallets other than the publisher that revealed one of these calls (from a shared link) or expired one.
           </p>
-          <ul className="plain">
+          <ul className="plain rows">
             {verifiers.map((v) => (
               <li key={v.address}>
-                <AddressLink network={network} address={v.address} /> {v.reveals} reveal{v.reveals === 1 ? '' : 's'},{' '}
-                {v.expiries} expir{v.expiries === 1 ? 'y' : 'ies'}
+                <AddressLink network={network} address={v.address} copy="Copy verifier address" />
+                <span className="muted">
+                  {v.reveals} reveal{v.reveals === 1 ? '' : 's'}, {v.expiries} expir{v.expiries === 1 ? 'y' : 'ies'}
+                </span>
               </li>
             ))}
           </ul>

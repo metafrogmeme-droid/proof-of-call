@@ -14,6 +14,14 @@ database, no server keys, no analytics and no third-party scripts or fonts.
 | `#/call/...?feed=..&dir=..&salt=..` | Reveal link: the proof page plus the opening, which only the publisher's `poc share` produces after the horizon |
 | `#/about` | How it works |
 
+**Layout:** a dark terminal theme (system fonts, no light default). A sticky header carries the brand, the network
+switch with the active network as a pill (for example `QIE Mainnet · 1990`), the contract address and the wallet. On
+desktop the overview has two columns: chain facts and a **Seal a Call** card on the left, the stat tiles and the latest
+calls ledger on the right, then the publishers table. On a phone it is a single column. The Seal a Call card only
+builds the publisher's `poc seal` command; sealing stays in the CLI and nothing is signed for it in the browser.
+Addresses and hashes are shown truncated with a copy button. A revealed call shows its re-check as pass/fail rows,
+with the Foundry line in a terminal block.
+
 The network switch in the header lists Testnet, and Mainnet once its deployment record exists. Mainnet becomes the
 default as soon as `deployments/qie-mainnet-1990.json` is in the build. Before that, the mainnet page says "not
 deployed yet".
