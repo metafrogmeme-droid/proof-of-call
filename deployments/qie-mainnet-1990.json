@@ -1,0 +1,46 @@
+{
+  "network": "QIE mainnet",
+  "chainId": 1990,
+  "explorer": "https://mainnet.qie.digital",
+  "rpc": "https://rpc1mainnet.qie.digital/",
+  "sourceCommit": "f8dddcb",
+  "compiler": {
+    "solc": "0.8.28",
+    "evmVersion": "paris",
+    "optimizer": true,
+    "optimizerRuns": 200
+  },
+  "deployer": "0xFd117A72F11DCE2a76b0986e0887A45276e83722",
+  "deployedAt": "2026-11-26T10:07:33Z",
+  "contracts": {
+    "ProofOfCall": {
+      "address": "0x1a65f498f185fade788204f1f67be1acaae3e079",
+      "tx": "0xd7b5728686a646a18164f1a3cd6d67dc19a37d9eec53c1263b5019752d7089a5",
+      "block": 12183721,
+      "constructorArgs": {
+        "initialOwner": "0x020A4366595292aa16184536bAB2E9949d0D925F",
+        "maxGap": 7200,
+        "flatBandBps": 10,
+        "feeds": [
+          "0x9E596d809a20A272c788726f592c0d1629755440",
+          "0x4bb7012Fbc79fE4Ae9B664228977b442b385500d"
+        ]
+      },
+      "owner": "0x020A4366595292aa16184536bAB2E9949d0D925F",
+      "pendingOwner": "0x0000000000000000000000000000000000000000"
+    }
+  },
+  "feeds": [
+    {
+      "asset": "BTC",
+      "pair": "BTC / USDT",
+      "address": "0x9E596d809a20A272c788726f592c0d1629755440"
+    },
+    {
+      "asset": "ETH",
+      "pair": "ETH / USDT",
+      "address": "0x4bb7012Fbc79fE4Ae9B664228977b442b385500d"
+    }
+  ],
+  "explorerVerified": false
+}
