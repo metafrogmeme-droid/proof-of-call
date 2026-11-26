@@ -30,7 +30,7 @@ export function AboutPage() {
         </ol>
       </Card>
       <Card title="What runs where">
-        <ul>
+        <ul className="where">
           <li>
             The contract (<code>ProofOfCall</code>) holds no funds, is not upgradeable and only reads the allowlisted
             QIE Oracle feeds. Its owner can manage the feed list and the defaults for new calls, and nothing about
@@ -46,7 +46,8 @@ export function AboutPage() {
           </li>
           <li>
             Publishers seal calls from their own wallets with the open-source command line tool; their salts never leave
-            their machines until a call is revealed.
+            their machines until a call is revealed. The Seal a Call card on the overview only builds that command;
+            nothing is signed for a seal in the browser.
           </li>
         </ul>
       </Card>

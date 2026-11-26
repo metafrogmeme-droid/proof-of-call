@@ -52,19 +52,22 @@ export function App() {
       <main className="main">{body}</main>
       <footer className="footer">
         <PublicNotice />
-        <p className="muted">
-          {data.source === 'wallet'
-            ? 'Data read through your wallet’s connection.'
-            : data.source === 'rpc' && network
-              ? `Data read from the ${network.name} RPC.`
-              : ''}{' '}
-          {data.head !== null ? `Latest block ${data.head.toString()}.` : ''}{' '}
-          {network?.proofOfCall ? (
-            <button type="button" className="link" onClick={data.refresh}>
-              Refresh
-            </button>
-          ) : null}
-        </p>
+        <div className="footer-row">
+          <span className="credit">HUMANOID-TRADERS · RUNECLAW</span>
+          <p className="muted footer-meta">
+            {data.source === 'wallet'
+              ? 'Data read through your wallet’s connection.'
+              : data.source === 'rpc' && network
+                ? `Data read from the ${network.name} RPC.`
+                : ''}{' '}
+            {data.head !== null ? `Latest block ${data.head.toString()}.` : ''}{' '}
+            {network?.proofOfCall ? (
+              <button type="button" className="link" onClick={data.refresh}>
+                Refresh
+              </button>
+            ) : null}
+          </p>
+        </div>
       </footer>
     </>
   );
